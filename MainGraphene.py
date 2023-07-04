@@ -58,7 +58,6 @@ if __name__ == '__main__':
     ParaKptIn  = ReadKPoint("data//KptIN_" + Name + ".txt")
     ParaKpt    = GetKPoint(ParaKptIn)
     ParaHmtK   = GetHamiltonianK(ParaHmtR,ParaKpt)
-    # H(k) = (O+HO)(Ok)
     ParaEig    = GetEigenSolution(ParaHmtK)
     ParaEigPlt = PlotEnergyBand(ParaKpt,ParaEig,Name)
     

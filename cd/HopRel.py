@@ -90,10 +90,7 @@ def FindRelation(ParaIn,ParaSym,ParaNbr,ParaSymAt):
             HopRelClasiii = np.zeros(NumHopi)
             HopRelClasiii[iHop] = -1
             HopRelClasiii[ConjLvAtAtOOIndiii] += 1 # No Spin & Real Hopping Terms!!!
-            if np.linalg.norm(LvAtAtOO[iClas][iHop] - np.array([0, 0, -1, 1, 2, 0, 0])) == 0:
-                print(LvAtAtOO[iClas][iHop])
-                print(ConjLvAtAtOOiii)
-                print(ConjLvAtAtOOIndiii)
+            HopRelClasi[count] += HopRelClasiii
             count += 1
         HopRelClas.append(HopRelClasi)
         
