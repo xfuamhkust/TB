@@ -10,8 +10,8 @@ def Ek(E0,t,k):
 
 E0 = 0
 t  = 1
-KptLv  = np.load("KptLv.npy")
-EigVal0 = np.load("EigVal.npy")
+KptLv  = np.load("KptLvGraphene.npy")
+EigVal0 = np.load("EigValGraphene.npy")
 NumKpt = len(KptLv)
 EigVal = np.zeros((NumKpt,2))
 for iKpt in range(NumKpt):

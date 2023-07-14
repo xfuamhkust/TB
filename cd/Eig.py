@@ -16,6 +16,4 @@ def GetEigenSolution(ParaHmtK):
     ParaEig = {"EigVal": EigVal,
                "EigVct": EigVct,
                }
-    np.save("EigVal",EigVal)
-    
     return ParaEig

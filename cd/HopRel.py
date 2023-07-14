@@ -90,10 +90,7 @@ def FindRelation(ParaIn,ParaSym,ParaNbr,ParaSymAt):
             HopRelClasiii = np.zeros(NumHopi)
             HopRelClasiii[iHop] = -1
             HopRelClasiii[ConjLvAtAtOOIndiii] += 1 # No Spin & Real Hopping Terms!!!
-            if np.linalg.norm(LvAtAtOO[iClas][iHop] - np.array([0, 0, -1, 1, 2, 0, 0])) == 0:
-                print(LvAtAtOO[iClas][iHop])
-                print(ConjLvAtAtOOiii)
-                print(ConjLvAtAtOOIndiii)
+            HopRelClasi[count] += HopRelClasiii
             count += 1
         HopRelClas.append(HopRelClasi)
         
@@ -110,14 +107,12 @@ def FindRelation(ParaIn,ParaSym,ParaNbr,ParaSymAt):
         HopRelClasi = HopRelClas[iClas]
         HopRelClasNewi = np.unique(HopRelClasi,axis=0)
         HopRelClas[iClas] = HopRelClasNewi
-    # print(HopRelClas[2])
     # 3. Reduced row echelon form
     error = 1e-6
-    for iClas in range(1,NumClas):
+    for iClas in range(NumClas):
         HopRelClasi = HopRelClas[iClas]
         HopRelClasNewi = Rref(HopRelClasi,error)
         HopRelClas[iClas] = HopRelClasNewi
-    # print(HopRelClas[2])
     
     # Alternative form of hopping relations
     HopRelAltClas = []
