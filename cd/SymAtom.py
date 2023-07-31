@@ -61,7 +61,7 @@ def FindAtomSymmetry(ParaIn,ParaSym,ParaNbr):
     NumLvAtAtIncl = np.sum(InclTF) # = len(InclInd)
     SymLvAtAtInd = np.copy(SymLvAtAtInd[:,InclTF])
     # InclInd = np.where(InclTF)[0] = SymLvAtAtInd[0]
-    
+    # print(SymLvAtAtInd)
     ''' Classify Neighboring Pairs by Symmetry '''
     
     # Group neighboring pairs by all symmetries, and sort them by distance
@@ -76,7 +76,7 @@ def FindAtomSymmetry(ParaIn,ParaSym,ParaNbr):
     # Dis = DisUnq[LvAtAtDisInd[LvAtAtClas0]]
     
     # Consider the effect of Hermitian Conjugate Operator (<iAt|H|jAt> & <jAt|H|iAt>)
-    NumClas = len(LvAtAtClas)
+    NumClas = len(LvAtAtClas) 
     ComInd = []
     for iClas in range(NumClas):
         n1, n2, n3, iAt, jAt = LvAtAt[LvAtAtClas[iClas][0]]

@@ -107,14 +107,12 @@ def FindRelation(ParaIn,ParaSym,ParaNbr,ParaSymAt):
         HopRelClasi = HopRelClas[iClas]
         HopRelClasNewi = np.unique(HopRelClasi,axis=0)
         HopRelClas[iClas] = HopRelClasNewi
-    # print(HopRelClas[2])
     # 3. Reduced row echelon form
     error = 1e-6
-    for iClas in range(1,NumClas):
+    for iClas in range(NumClas):
         HopRelClasi = HopRelClas[iClas]
         HopRelClasNewi = Rref(HopRelClasi,error)
         HopRelClas[iClas] = HopRelClasNewi
-    # print(HopRelClas[2])
     
     # Alternative form of hopping relations
     HopRelAltClas = []
