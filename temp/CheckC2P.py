@@ -111,6 +111,15 @@ def GenConv():
         AtC[2*NumAt:3*NumAt] = AtC0 + np.array([[1/2,  0,1/2]])
         AtC[3*NumAt:4*NumAt] = AtC0 + np.array([[1/2,1/2,  0]])
         AtTypeInd = np.tile(AtTypeInd0,4)
+    r       = np.random.random(3)
+    x, y, z = r/np.linalg.norm(r)
+    theta   = np.random.random()*2*np.pi
+    ct = np.cos(theta); st = np.sin(theta)
+    R = np.array([[ct+(1-ct)*x**2,  (1-ct)*x*y-st*z, (1-ct)*x*z+st*y],
+                  [(1-ct)*y*x+st*z, ct+(1-ct)*y**2,  (1-ct)*y*z-st*x],
+                  [(1-ct)*z*x-st*y, (1-ct)*z*y+st*x, ct+(1-ct)*z**2 ]])
+    LvC = LvC @ R.T
+    
     return BraLat, LvC, AtC, AtTypeInd, Dim
         
 # def CheckC2P(n=10):
