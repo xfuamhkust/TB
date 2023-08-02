@@ -26,6 +26,7 @@ def inputParametersInDegree2S(a, b, c, alpha, beta, gamma):
     betaInRadians = math.radians(beta)
     gammaInRadians = math.radians(gamma)
 
+    #sanity check
     minAlpha=np.arccos(np.cos(betaInRadians-gammaInRadians))
     maxAlpha=np.arccos(np.cos(betaInRadians+gammaInRadians))
     if alphaInRadian<minAlpha or alphaInRadian>maxAlpha:
@@ -52,6 +53,7 @@ def inputParametersInRadian2S(a, b, c, alpha, beta, gamma):
     # sanity check
     if a <= 0 or b <= 0 or c <= 0 or alpha <= 0 or alpha >= np.pi or beta <= 0 or beta >= np.pi or gamma <= 0 or gamma >= np.pi:
         raise ValueError("Invalid input: out of range.")
+    # sanity check
     minAlpha = np.arccos(np.cos(beta - gamma))
     maxAlpha = np.arccos(np.cos(beta + gamma))
     if alpha< minAlpha or alpha > maxAlpha:
@@ -70,13 +72,13 @@ def AlgorithmN(S):
     :param S: matrix S=[[A, B, C],[xi, eta, zeta]]
     :return: matrix S with normalized parameters
     """
-    [[A, B, C], [xi, eta, zeta]] = S
-    a = np.sqrt(A)
-    b = np.sqrt(B)
-    c = np.sqrt(C)
-    cosAlpha = xi / (2 * b * c)
-    cosBeta = eta / (2 * a * c)
-    cosGamma = zeta / (2 * a * b)
+    # [[A, B, C], [xi, eta, zeta]] = S
+    # a = np.sqrt(A)
+    # b = np.sqrt(B)
+    # c = np.sqrt(C)
+    # cosAlpha = xi / (2 * b * c)
+    # cosBeta = eta / (2 * a * c)
+    # cosGamma = zeta / (2 * a * b)
     # print("Before N cos(alpha)=" + str(cosAlpha) + ", cos(beta)=" + str(cosBeta) + ", cos(gamma)=" + str(cosGamma))
 
     epsRel = 1e-8
@@ -103,13 +105,13 @@ def AlgorithmN(S):
         S[1, :] = np.abs(S[1, :])
     else:
         S[1, :] = -np.abs(S[1, :])
-    [[A, B, C], [xi, eta, zeta]] = S
-    a = np.sqrt(A)
-    b = np.sqrt(B)
-    c = np.sqrt(C)
-    cosAlpha = xi / (2 * b * c)
-    cosBeta = eta / (2 * a * c)
-    cosGamma = zeta / (2 * a * b)
+    # [[A, B, C], [xi, eta, zeta]] = S
+    # a = np.sqrt(A)
+    # b = np.sqrt(B)
+    # c = np.sqrt(C)
+    # cosAlpha = xi / (2 * b * c)
+    # cosBeta = eta / (2 * a * c)
+    # cosGamma = zeta / (2 * a * b)
     # print("After N cos(alpha)="+str(cosAlpha)+", cos(beta)="+str(cosBeta)+", cos(gamma)="+str(cosGamma))
     # print("N: "+str(S[0,0])+", "+str(S[0,1])+", "+str(S[0,2])+", "+str(S[1,0])+", "+str(S[1,1])+", "+str(S[1,2]))
     return S
@@ -144,14 +146,14 @@ def AlgorithmB3(S):
     :param S:
     :return:
     """
-    [[A, B, C], [xi, eta, zeta]] = S
-    a=np.sqrt(A)
-    b=np.sqrt(B)
-    c=np.sqrt(C)
-    cosAlpha=xi/(2*b*c)
-    cosBeta=eta/(2*a*c)
-    cosGamma=zeta/(2*a*b)
-    # print("Before B3: a="+str(a)+", b="+str(b)+", c="+str(c)+", xi="+str(xi)+", eta="+str(eta)+", zeta="+str(zeta) +", cos(alpha)="+str(cosAlpha)+", cos(beta)="+str(cosBeta)+", cos(gamma)="+str(cosGamma))
+    [[A, _, C], [xi, eta, zeta]] = S
+    # a=np.sqrt(A)
+    # b=np.sqrt(B)
+    # c=np.sqrt(C)
+    # cosAlpha=xi/(2*b*c)
+    # cosBeta=eta/(2*a*c)
+    # cosGamma=zeta/(2*a*b)
+    # # print("Before B3: a="+str(a)+", b="+str(b)+", c="+str(c)+", xi="+str(xi)+", eta="+str(eta)+", zeta="+str(zeta) +", cos(alpha)="+str(cosAlpha)+", cos(beta)="+str(cosBeta)+", cos(gamma)="+str(cosGamma))
 
     j = math.floor((eta + A) / (2 * A))
     # CNew=c**2+j**2*a**2-j*2*a*c*cosBeta
@@ -165,13 +167,13 @@ def AlgorithmB3(S):
     S[1, 0] = xi
     S[1, 1] = eta
 
-    [[A, B, C], [xi, eta, zeta]] = S
-    a = np.sqrt(A)
-    b = np.sqrt(B)
-    c = np.sqrt(C)
-    cosAlpha = xi / (2 * b * c)
-    cosBeta = eta / (2 * a * c)
-    cosGamma = zeta / (2 * a * b)
+    # [[A, B, C], [xi, eta, zeta]] = S
+    # a = np.sqrt(A)
+    # b = np.sqrt(B)
+    # c = np.sqrt(C)
+    # cosAlpha = xi / (2 * b * c)
+    # cosBeta = eta / (2 * a * c)
+    # cosGamma = zeta / (2 * a * b)
     # print("After B3: a="+str(a)+", b="+str(b)+", c="+str(c)+", xi="+str(xi)+", eta="+str(eta)+", zeta="+str(zeta) +", cos(alpha)="+str(cosAlpha)+", cos(beta)="+str(cosBeta)+", cos(gamma)="+str(cosGamma))
 
     # print("B3: " + str(S[0, 0]) + ", " + str(S[0, 1]) + ", " + str(S[0, 2]) + ", " + str(S[1, 0]) + ", " + str(
@@ -248,7 +250,7 @@ def AlgorithmB(S):
 
     # num=0
     while condB2 or condB3 or condB4 or condB5:
-        [[A, B, _], [xi, _, _]] = S
+        [[_, B, _], [xi, _, _]] = S
         condB2 = (np.abs(xi) > B)
         if condB2:
             S = AlgorthmB2(S)
