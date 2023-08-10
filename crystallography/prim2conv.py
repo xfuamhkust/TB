@@ -3,7 +3,7 @@ import math
 
 
 # this script transforms a primitive cell to a conventional cell
-
+#TODO: values of errors (epsilon) to be rectified
 
 def inputParametersInDegree2S(a, b, c, alpha, beta, gamma):
     """
@@ -82,7 +82,7 @@ def AlgorithmN(S):
     # print("Before N cos(alpha)=" + str(cosAlpha) + ", cos(beta)=" + str(cosBeta) + ", cos(gamma)=" + str(cosGamma))
 
     epsRel = 1e-8
-    epsAbs = 1e-5
+    epsAbs = 1e-6
     # step 1, sort A B C
     ABCInd = np.argsort(S[0, :])
 
@@ -294,7 +294,7 @@ def potentialBuergerCharacteristics(S):
     sigma=xi+eta+zeta
 
     epsRel = 1e-8
-    epsAbs = 1e-5
+    epsAbs = 1e-6
     potentialBgChars=[]
     #test condition 1
     A1=A
@@ -559,8 +559,128 @@ def allNormalizedBuergerCharacteristics(S):
     """
 
     potentialBgChars=potentialBuergerCharacteristics(S)#TODO: only unique matrices should remain!
-    normalizedBgChars=[AlgorithmN(STmp) for STmp in potentialBgChars]
+    normalizedBgCharsFlattened=[(np.around(AlgorithmN(STmp),8)).flatten() for STmp in potentialBgChars]
+    #flatten the matrix to a vector to enable hashing, remove duplicated vectors using set(), then  transform the vector back to array
+    uniqueData=list(map(np.array, set(map(tuple, normalizedBgCharsFlattened))))
+    normalizedBgChars=[np.reshape(vec,(2,3)) for vec in uniqueData]
     return normalizedBgChars
+
+
+def selectLen3(normalizedBgChars):
+    """
+
+    :param normalizedBgChars: normalized Buerger characteristics belonging to the same Niggli cell, there are 3 such matrices
+    :return: the category number of the Buerger characteristics
+    """
+    epsRel = 1e-8
+    epsAbs = 1e-6
+    # if len(normalizedBgChars)!=3:
+    #     raise ValueError("Invalid input: out of range.")
+
+    S0,S1,S2=normalizedBgChars
+    [[A,B,C],[_,_,_]]=S0
+    #case A=B<=C
+    if np.isclose(A,B, rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return 3
+    #case A<B<C
+    if A<B and B<C:
+        return 11
+
+    #case A<B=C
+    #if xi is always <0
+    if S0[1,0]<0 and S1[1,0]<0 and S2[1,0]<0:
+        return 19
+
+    #if there exists eta=0
+    if np.isclose(S0[1,1],0, rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        or np.isclose(S1[1,1],0, rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        or np.isclose(S2[1,1],0, rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return 11
+
+    #if abs(xi) is always B
+    if np.isclose(np.abs(S0[1,0]),B, rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(np.abs(S1[1,0]),B, rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(np.abs(S2[1,0]),B, rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return 18
+
+    #otherwise the category is 13
+    return 13
+
+def NiggliOfLen3(normalizedBgChars):
+    """
+
+    :param normalizedBgChars: normalized Buerger characteristics belonging to the same Niggli cell, there are 3 such matrices
+    :return: S matrix of Niggli cell
+    """
+
+    category=selectLen3(normalizedBgChars)
+    S0,S1,S2=normalizedBgChars
+    if category==3:
+        #find the matrix with the largest value of xi
+        indOfXi=np.argsort([S0[1,0],S1[1,0],S2[1,0]])
+        return normalizedBgChars[indOfXi[-1]]
+    if category==11:
+        if S0[1,0]>0:
+            return S0
+        elif S1[1,0]>0:
+            return S1
+        else:
+            return S2
+
+    if category==13:
+        if S0[1,1]>0:
+            return S0
+        elif S1[1,1]>0:
+            return S1
+        else:
+            return S2
+    if category==18:
+        indOfEta=np.argsort([S0[1,1],S1[1,1],S2[1,1]])
+        return normalizedBgChars[indOfEta[-1]]
+
+    #remaining case: category=19
+    if category==19:
+        indOfEta=np.argsort([S0[1,1],S1[1,1],S2[1,1]])
+        return normalizedBgChars[indOfEta[0]]
+
+    #if not returned until now, then something is wrong
+    raise RuntimeError("Something is wrong for 3-Buerger-cell case.")
+
+def selectLen2(normalizedBgChars):
+    """
+
+    :param normalizedBgChars: normalized Buerger characteristics belonging to the same Niggli cell, there are 2 such matrices
+    :return: the representative category number of the Buerger characteristics
+    """
+    S0, S1= normalizedBgChars
+
+    #all categories except for category 21
+    if S0[1,0]>S1[1,0] or S1[1,0]>S0[1,0]:
+        return 1
+    else:
+        return 21
+
+def NiggliOfLen2(normalizedBgChars):
+    """
+
+    :param normalizedBgChars: normalized Buerger characteristics belonging to the same Niggli cell, there are 2 such matrices
+    :return: S matrix of Niggli cell
+    """
+    category=selectLen2(normalizedBgChars)
+    S0,S1=normalizedBgChars
+    if category==1:
+        if S0[1,0]>0:
+            return S0
+        else:
+            return S1
+    if category==21:
+        if S0[1,1]>S1[1,1]:
+            return S0
+        else:
+            return S1
+
+
+
 
 
 
@@ -594,6 +714,622 @@ def Buerger2Niggli(normalizedBgChars):
             return S0
         else:
             return S1
+
+    #if there are 3 Buerger cells
+    if len(normalizedBgChars)==3:
+        return NiggliOfLen3(normalizedBgChars)
+    # if there are 2 Buerger cells
+    if len(normalizedBgChars)==2:
+        return NiggliOfLen2(normalizedBgChars)
+
+    raise RuntimeError("Wrong number of matrices.")
+
+
+
+def checkNiggliCell(S):
+    """
+
+    :param S: output of Buerger2Niggli(), supposed to be a Niggli cell
+    :return: check if the execution of Buerger2Niggli() is correct.
+    """
+
+    [[A,B,C],[xi,eta,zeta]]=S
+    epsRel = 1e-8
+    epsAbs = 1e-6
+    #type-I cell
+    if xi>0 and eta>0 and zeta>0:
+        #main conditions
+        if not (A<=B and B<=C):
+            raise ValueError("Main condition A<=B<=C not satisfied.")
+        if not (np.abs(xi)<=B and np.abs(eta)<=A and np.abs(zeta)<=A):
+            raise ValueError("Main condition |xi|<=B, |eta|<=A, |zeta|<=A not satisfied.")
+        #special conditions
+        #1
+        if np.isclose(A,B, rtol=epsRel, atol=epsAbs, equal_nan=False):
+            if not xi<=eta:
+                raise ValueError("Special condition xi<=eta in type-I cell not satisfied.")
+        #2
+        if np.isclose(B,C,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            if not eta<=zeta:
+                raise ValueError("Special condition eta<=zeta in type-I cell not satisfied.")
+        #3
+        if np.isclose(xi,B,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            if not 1/2*zeta<=eta:
+                raise ValueError("Special condition 1/2 zeta<=eta in type-I cell not satisfied.")
+
+        #4
+        if np.isclose(eta,A,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            if not 1/2*zeta<=xi:
+                raise ValueError("Special condition 1/2 zeta<=xi in type-I cell not satisfied.")
+
+        #5
+        if np.isclose(zeta,A,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            if not 1/2*eta<=xi:
+                raise ValueError("Special condition 1/2 eta<=xi in type-I cell not satisfied.")
+
+
+    #type-II cell
+    if xi<=0 and eta<=0 and zeta<=0:
+        #main conditions
+        if not (A<=B and B<=C):
+            raise ValueError("Main condition A<=B<=C not satisfied.")
+        if not (np.abs(xi)<=B and np.abs(eta)<=A and np.abs(zeta)<=A):
+            raise ValueError("Main condition |xi|<=B, |eta|<=A, |zeta|<=A not satisfied.")
+        if not (np.abs(xi)+np.abs(eta)+np.abs(zeta)<=A+B):
+            raise ValueError("Main condition |xi|+|eta|+|zeta|<=A+B not satisfied.")
+        #special conditions
+        #1
+        if np.isclose(A,B,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            if not np.abs(xi)<=np.abs(eta):
+                raise ValueError("Special condition |xi|<=|eta| in type-II cell not satisfied.")
+
+        #2
+        if np.isclose(B,C,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            if not np.abs(eta)<=np.abs(zeta):
+                raise ValueError("Special condition |eta|<=|zeta| in type-II cell not satisfied.")
+        #3
+        if np.isclose(np.abs(xi),B,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            if not np.isclose(zeta,0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+                raise ValueError("Special condition zeta=0 in type-II cell not satisfied.")
+        #4
+        if np.isclose(np.abs(eta),A,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            if not np.isclose(zeta,0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+                raise ValueError("Special condition zeta=0 in type-II cell not satisfied.")
+        #5
+        if np.isclose(np.abs(zeta),A,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            if not np.isclose(eta,0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+                raise ValueError("Special condition eta=0 in type-II cell not satisfied.")
+
+        #6
+        if np.isclose(np.abs(xi)+np.abs(eta)+np.abs(zeta),A+B,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            if not A<=np.abs(eta)+1/2*np.abs(zeta):
+                raise ValueError("Special condition A<=|eta|+1/2|zeta| in type-II cell not satisfied.")
+
+
+    #not the above 2 cells, raise error
+
+    raise ValueError("Wrong S matrix.")
+
+
+def NiggliType(S):
+    """
+
+    :param S: S matrix of a Niggli cell
+    :return: type 1 or 2
+    """
+    epsRel = 1e-8
+    epsAbs = 1e-6
+    [[_,_,_],[xi,eta,zeta]]=S
+    if xi>0 and eta>0 and zeta>0:
+        return 1
+    elif (xi<0 or np.isclose(xi,0,rtol=epsRel, atol=epsAbs, equal_nan=False))\
+        and (eta<0 or np.isclose(eta,0,rtol=epsRel, atol=epsAbs, equal_nan=False))\
+        and (zeta<0 or np.isclose(zeta,0,rtol=epsRel, atol=epsAbs, equal_nan=False)):
+        return 2
+    else:
+        raise ValueError("Invalid Niggli matrix.")
+
+
+def Niggli2ConventionalRow(S):
+    """
+
+    :param S: S matrix of Niggli cell returned from Buerger2Niggli()
+    :return: Row in the table 9.2.5.1 in  International Tables for Crystallography Volume A_ Space-group symmetry-Springer Netherlands (2002)
+    """
+    [[A,B,C],[xi,eta,zeta]]=S
+    D=1/2*xi
+    E=1/2*eta
+    F=1/2*zeta
+    epsRel = 1e-8
+    epsAbs = 1e-6
+
+    #A=B=C
+    if np.isclose(A,B,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(B,C,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        #1
+        if NiggliType(S)==1\
+            and np.isclose(D,A/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,A/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,A/2,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No":1, "Lattice symmetry":"Cubic", "Bravais type":"cF", "Transformation matrix":np.array([[1,-1,1],[1,1,-1],[-1,1,1]],dtype=np.float64)}
+        #2
+        if NiggliType(S)==1\
+            and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,D,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No":2, "Lattice symmetry":"Rhombohedral", "Bravais type":"hR", "Transformation matrix":np.array([[1,-1,0],[-1,0,1],[-1,-1,-1]],dtype=np.float64)}
+
+        #3
+        if NiggliType(S)==2\
+            and np.isclose(D,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No":3, "Lattice symmetry":"Cubic", "Bravais type":"cP", "Transformation matrix":np.array([[1,0,0],[0,1,0],[0,0,1]],dtype=np.float64)}
+
+        #5
+        if NiggliType(S)==2\
+            and np.isclose(D,-A/3,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,-A/3,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,-A/3,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No":5, "Lattice symmetry":"Cubic", "Bravais type":"cI", "Transformation matrix":np.array([[1,0,1],[1,1,0],[0,1,1]],dtype=np.float64)}
+
+
+        #4
+        if NiggliType(S)==2\
+            and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,D,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No":4, "Lattice symmetry":"Rhombohedral", "Bravais type":"hR", "Transformation matrix":np.array([[1,-1,0],[-1,0,1],[-1,-1,-1]],dtype=np.float64)}
+
+        #6
+        if NiggliType(S)==2\
+            and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,F,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(2*np.abs(D+E+F),A+B,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No":6, "Lattice symmetry":"Tetragonal", "Bravais type":"tI", "Transformation matrix":np.array([[0,1,1],[1,0,1],[1,1,0]],dtype=np.float64)}
+
+
+        #7
+        if NiggliType(S)==2\
+            and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,E,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,E,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(2*np.abs(D+E+F),A+B,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No":7, "Lattice symmetry":"Tetragonal", "Bravais type":"tI", "Transformation matrix":np.array([[1,0,1],[1,1,0],[0,1,1]],dtype=np.float64)}
+
+        #8
+        if NiggliType(S)==2\
+            and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,E, rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,F,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(2*np.abs(D+E+F),A+B,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No":8, "Lattice symmetry":"Orthorhombic", "Bravais type":"oI", "Transformation matrix":np.array([[-1,-1,0],[-1,0,-1],[0,-1,-1]],dtype=np.float64)}
+
+
+    #A=B, no conditions on C
+    if np.isclose(A,B,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        #9
+        if NiggliType(S)==1\
+            and np.isclose(D,A/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,A/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,A/2,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No": 9, "Lattice symmetry": "Rhombohedral", "Bravais type": "hR",
+                    "Transformation matrix": np.array([[1,0,0], [-1,1,0], [-1-1,3]], dtype=np.float64)}
+
+        #10
+        if NiggliType(S)==1\
+            and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,F,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No": 10, "Lattice symmetry": "Monoclinic", "Bravais type": "mC",
+                    "Transformation matrix": np.array([[1,1,0], [1,-1,0], [0,0,-1]], dtype=np.float64)}
+
+        #11
+        if NiggliType(S)==2\
+            and np.isclose(D,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No": 11, "Lattice symmetry": "Tetragonal", "Bravais type": "tP",
+                    "Transformation matrix": np.array([[1,0,0], [0,1,0], [0, 0, 1]], dtype=np.float64)}
+
+        #12
+        if NiggliType(S)==2\
+            and np.isclose(D,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,-A/2,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No": 12, "Lattice symmetry": "Hexagonal", "Bravais type": "hP",
+                    "Transformation matrix": np.array([[1,0,0], [0,1,0], [0,0,1]], dtype=np.float64)}
+
+        #13
+        if NiggliType(S)==2\
+            and np.isclose(D,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,F,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No": 13, "Lattice symmetry": "Orthorhombic", "Bravais type": "oC",
+                    "Transformation matrix": np.array([[1,1,0], [-1,1,0], [0,0,1]], dtype=np.float64)}
+
+        #15
+        if NiggliType(S)==2\
+            and np.isclose(D,-A/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,-A/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No": 15, "Lattice symmetry": "Tetragonal", "Bravais type": "tI",
+                    "Transformation matrix": np.array([[1,0,0], [0,1,0], [1,1,2]], dtype=np.float64)}
+
+        #16
+        if NiggliType(S)==2\
+            and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,F,rtol=epsRel, atol=epsAbs, equal_nan=False) \
+            and np.isclose(2 * np.abs(D + E + F), A + B, rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No": 16, "Lattice symmetry": "Orthorhombic", "Bravais type": "oF",
+                    "Transformation matrix": np.array([[-1,-1,0], [1,-1,0], [1,1,2]], dtype=np.float64)}
+
+        #14
+        if NiggliType(S)==2\
+            and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,F,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No": 14, "Lattice symmetry": "Monoclinic", "Bravais type": "mC",
+                    "Transformation matrix": np.array([[1,1,0], [-1,1,0], [0,0,1]], dtype=np.float64)}
+
+        #17
+        if NiggliType(S)==2\
+            and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,E,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,F,rtol=epsRel, atol=epsAbs, equal_nan=False) \
+            and np.isclose(2 * np.abs(D + E + F), A + B, rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No": 17, "Lattice symmetry": "Monoclinic", "Bravais type": "mC",
+                    "Transformation matrix": np.array([[1,-1,0], [1,1,0], [-1,0,-1]], dtype=np.float64)}
+
+
+    #B=C, no conditions on A
+    if np.isclose(B,C,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        #18
+        if NiggliType(S)==1\
+            and np.isclose(D,A/4,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,A/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,A/2,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No": 18, "Lattice symmetry": "Tetragonal", "Bravais type": "tI",
+                    "Transformation matrix": np.array([[0,-1,1], [1,-1,-1], [1,0,0]], dtype=np.float64)}
+        #19
+        if NiggliType(S)==1\
+            and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,A/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,A/2,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No": 19, "Lattice symmetry": "Orthorhombic", "Bravais type": "oI",
+                    "Transformation matrix": np.array([[-1,0,0], [0,-1,1], [-1,1,1]], dtype=np.float64)}
+
+        #20
+        if NiggliType(S)==1\
+            and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,E,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,E,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No": 20, "Lattice symmetry": "Monoclinic", "Bravais type": "mC",
+                    "Transformation matrix": np.array([[0,1,1], [0,1,-1], [-1,0,0]], dtype=np.float64)}
+        #21
+        if NiggliType(S)==2\
+            and np.isclose(D,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No": 21, "Lattice symmetry": "Tetragonal", "Bravais type": "tP",
+                    "Transformation matrix": np.array([[0,1,0], [0,0,1], [1,0,0]], dtype=np.float64)}
+
+        #22
+        if NiggliType(S)==2\
+            and np.isclose(D,-B/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No": 22, "Lattice symmetry": "Hexagonal", "Bravais type": "hP",
+                    "Transformation matrix": np.array([[0,1,0], [0,0,1], [1,0,0]], dtype=np.float64)}
+        #23
+        if NiggliType(S)==2\
+            and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No": 23, "Lattice symmetry": "Orthorhombic", "Bravais type": "oC",
+                    "Transformation matrix": np.array([[0,1,1], [0,-1,1], [1,0,0]], dtype=np.float64)}
+
+        #24
+        if NiggliType(S)==2\
+            and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,-A/3,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,-A/3,rtol=epsRel, atol=epsAbs, equal_nan=False) \
+            and np.isclose(2 * np.abs(D + E + F), A + B, rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No": 24, "Lattice symmetry": "Rhombohedral", "Bravais type": "hR",
+                    "Transformation matrix": np.array([[1,2,1], [0,-1,1], [1,0,0]], dtype=np.float64)}
+
+        #25
+        if NiggliType(S)==2\
+            and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(E,E,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+            and np.isclose(F,E,rtol=epsRel, atol=epsAbs, equal_nan=False):
+            return {"No": 25, "Lattice symmetry": "Monoclinic", "Bravais type": "mC",
+                    "Transformation matrix": np.array([[0,1,1], [0,-1,1], [1,0,0]], dtype=np.float64)}
+
+
+    #no conditions on A, B, C
+
+    #26
+    if NiggliType(S)==1\
+        and np.isclose(D,A/4,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,A/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,A/2, rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 26, "Lattice symmetry": "Orthorhombic", "Bravais type": "oF",
+                "Transformation matrix": np.array([[1,0,0], [-1,2,0], [-1,0,2]], dtype=np.float64)}
+
+    #27
+    if NiggliType(S)==1\
+        and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,A/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,A/2,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 27, "Lattice symmetry": "Monoclinic", "Bravais type": "mC",
+                "Transformation matrix": np.array([[-1,2,0], [-1,0,0], [0,-1,1]], dtype=np.float64)}
+
+
+    #28
+    if NiggliType(S)==1\
+        and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,A/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,2*D,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 28, "Lattice symmetry": "Monoclinic", "Bravais type": "mC",
+                "Transformation matrix": np.array([[-1,0,0], [-1,0,2], [0,1,0]], dtype=np.float64)}
+
+
+    #29
+    if NiggliType(S)==1\
+        and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,2*D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,A/2,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 29, "Lattice symmetry": "Monoclinic", "Bravais type": "mC",
+                "Transformation matrix": np.array([[1,0,0], [1,-2,0], [0,0,-1]], dtype=np.float64)}
+
+    #30
+    if NiggliType(S)==1\
+        and np.isclose(D,B/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,E,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,2*E,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 30, "Lattice symmetry": "Monoclinic", "Bravais type": "mC",
+                "Transformation matrix": np.array([[0,1,0], [0,1,-2], [-1,0,0]], dtype=np.float64)}
+
+    #31
+    if NiggliType(S)==1\
+        and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,E,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,F,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 31, "Lattice symmetry": "Triclinic", "Bravais type": "aP",
+                "Transformation matrix": np.array([[1,0,0], [0,1,0], [0,0,1]], dtype=np.float64)}
+
+
+    #32
+    if NiggliType(S)==2\
+        and np.isclose(D,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 32, "Lattice symmetry": "Orthorhombic", "Bravais type": "oP",
+                "Transformation matrix": np.array([[1,0,0], [0,1,0], [0,0,1]], dtype=np.float64)}
+
+
+    #40
+    if NiggliType(S)==2\
+        and np.isclose(D,-B/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 40, "Lattice symmetry": "Orthorhombic", "Bravais type": "oC",
+                "Transformation matrix": np.array([[0,-1,0], [0,1,2], [-1,0,0]], dtype=np.float64)}
+
+    #35
+    if NiggliType(S)==2\
+        and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 35, "Lattice symmetry": "Monoclinic", "Bravais type": "mP",
+                "Transformation matrix": np.array([[0,-1,0], [-1,0,0], [0,0,-1]], dtype=np.float64)}
+
+
+    #36
+    if NiggliType(S)==2\
+        and np.isclose(D,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,-A/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 36, "Lattice symmetry": "Orthorhombic", "Bravais type": "oC",
+                "Transformation matrix": np.array([[1,0,0], [-1,0,-2], [0,1,0]], dtype=np.float64)}
+
+    #33
+    if NiggliType(S)==2\
+        and np.isclose(D,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,E,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 33, "Lattice symmetry": "Monoclinic", "Bravais type": "mP",
+                "Transformation matrix": np.array([[1,0,0], [0,1,0], [0,0,1]], dtype=np.float64)}
+
+
+    #38
+    if NiggliType(S)==2\
+        and np.isclose(D,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,-A/2,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 38, "Lattice symmetry": "Orthorhombic", "Bravais type": "oC",
+                "Transformation matrix": np.array([[-1,0,0], [1,2,0], [0,0,-1]], dtype=np.float64)}
+
+
+    #34
+    if NiggliType(S)==2\
+        and np.isclose(D,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,F,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 34, "Lattice symmetry": "Monoclinic", "Bravais type": "mP",
+                "Transformation matrix": np.array([[-1,0,0], [0,0,-1], [0,-1,0]], dtype=np.float64)}
+
+    #42
+    if NiggliType(S)==2\
+        and np.isclose(D,-B/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,-A/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 42, "Lattice symmetry": "Orthorhombic", "Bravais type": "oI",
+                "Transformation matrix": np.array([[-1,0,0], [0,-1,0], [1,1,2]], dtype=np.float64)}
+
+
+    #41
+    if NiggliType(S)==2\
+        and np.isclose(D,-B/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,E,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 41, "Lattice symmetry": "Monoclinic", "Bravais type": "mC",
+                "Transformation matrix": np.array([[0,-1,-2], [0,-1,0], [-1,0,0]], dtype=np.float64)}
+
+
+    #37
+    if NiggliType(S)==2\
+        and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,-A/2,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 37, "Lattice symmetry": "Monoclinic", "Bravais type": "mC",
+                "Transformation matrix": np.array([[1,0,2], [1,0,0], [0,1,0]], dtype=np.float64)}
+
+
+
+    #39
+    if NiggliType(S)==2\
+        and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,-A/2,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 39, "Lattice symmetry": "Monoclinic", "Bravais type": "mC",
+                "Transformation matrix": np.array([[-1,-2,0], [-1,0,0], [0,0,-1]], dtype=np.float64)}
+
+
+    #43
+    if NiggliType(S)==2\
+        and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,E,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,F,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(2*np.abs(D+E+F),A+B,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(np.abs(2*D+F),B,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 43, "Lattice symmetry": "Monoclinic", "Bravais type": "mI",
+                "Transformation matrix": np.array([[-1,0,0], [-1,-1,-2], [0,-1,0]], dtype=np.float64)}
+
+
+    #44
+    if NiggliType(S)==2\
+        and np.isclose(D,D,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(E,E,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(F,F,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        return {"No": 44, "Lattice symmetry": "Triclinic", "Bravais type": "aP",
+                "Transformation matrix": np.array([[1,0,0], [0,1,0], [0,0,1]], dtype=np.float64)}
+
+    #if none of above is satisfied
+    raise ValueError("Conventional cell is not found.")
+
+
+
+
+def getConventional(S):
+    """
+
+    :param S: S matrix of Niggli cell returned from Buerger2Niggli()
+    :return: information concerning the conventional cell
+    """
+    convInfoList=Niggli2ConventionalRow(S)
+    # No=convInfoList["No"]
+    # crystalSystem=convInfoList["Lattice symmetry"]
+    # BrvTyp=convInfoList["Bravais type"]
+    M=convInfoList["Transformation matrix"]
+
+    [[A,B,C],[xi,eta,zeta]]=S
+    D = 1 / 2 * xi
+    E = 1 / 2 * eta
+    F = 1 / 2 * zeta
+    m0=M[0,:]
+    m1=M[1,:]
+    m2=M[2,:]
+    #for definition of R2, see notes
+    R2=np.array([[A,F,E],
+                 [F,B,D],
+                 [E,D,C]])
+
+    AConv=m0@R2@m0
+
+    BConv=m1@R2@m1
+
+    CConv=m2@R2@m2
+
+    DConv=m1@R2@m2
+
+    EConv=m2@R2@m0
+
+    FConv=m0@R2@m1
+
+    aConv=np.sqrt(AConv)
+    bConv=np.sqrt(BConv)
+    cConv=np.sqrt(CConv)
+
+    alphaConv=np.arccos(DConv/(bConv*cConv))
+
+    betaConv=np.arccos(EConv/(aConv*cConv))
+
+    gammaConv=np.arccos(FConv/(aConv*bConv))
+
+    convParamsAndInfo={"a":aConv,"b":bConv,"c":cConv,"alpha":alphaConv,"beta":betaConv,"gamma":gammaConv,
+                     "Crystal System":convInfoList["Lattice symmetry"],"Bravais type": convInfoList["Bravais type"] }
+    #the angles are in radians
+    return convParamsAndInfo
+
+
+
+def getConventionalInDegree(S):
+    """
+
+    :param S: S matrix of Niggli cell returned from Buerger2Niggli()
+    :return: information concerning the conventional cell, with angles in degrees
+    """
+    convParamsAndInfo=getConventional(S)
+    alphaInRadian=convParamsAndInfo["alpha"]
+    betaInRadian=convParamsAndInfo["beta"]
+    gammaInRadian=convParamsAndInfo["gamma"]
+
+    alphaInDegree=math.degrees(alphaInRadian)
+    betaInDegree = math.degrees(betaInRadian)
+    gammaInDegree = math.degrees(gammaInRadian)
+
+    convParamsAndInfo["alpha"]=alphaInDegree
+    convParamsAndInfo["beta"]=betaInDegree
+    convParamsAndInfo["gamma"]=gammaInDegree
+
+    return convParamsAndInfo
+
+
+
+
+def prim2conv(a,b,c,alpha,beta,gamma):
+    """
+
+    :param a: length
+    :param b: length
+    :param c: length
+    :param alpha: angle between b and c, in degrees
+    :param beta: angle between c and a, in degrees
+    :param gamma: angle between a and b, in degrees
+    :return: information about the conventional cell, with angles in degrees
+    """
+    #input parameters (angle in degrees) to matrix S
+    S=inputParametersInDegree2S(a,b,c,alpha,beta,gamma)
+
+    #find Buerger cell
+    SofB=AlgorithmB(S)
+
+    #find all Buerger cells
+    normalizedBgChars=allNormalizedBuergerCharacteristics(SofB)
+
+    #find Niggli cell
+    SofN=Buerger2Niggli(normalizedBgChars)
+
+    #Niggli cell to conventional cell (angle in degrees)
+    convParamsAndInfo=getConventionalInDegree(SofN)
+
+    return convParamsAndInfo
+
+
 
 
 
