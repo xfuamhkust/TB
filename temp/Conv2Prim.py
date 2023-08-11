@@ -1,7 +1,18 @@
 import numpy as np
 
 def Conv2Prim(LvC, AtC, AtTypeInd, Dim, error=1e-3):
-    
+    '''
+    This function is to transfer conventional cell gauge to primitive cell gauge.
+    Input:
+        LvC: Lattice vectors in conventional cell.
+        AtC: Atom sites in conventional cell.
+        AtTypeInd: The type of each atom. [0,1,2,2,2] for ABO3.
+        Dim: dimension, 2 or 3
+    Output:
+        LatSys: Lattice systems (7)
+        BraLat: Bravais lattices (14)
+        LvP: Lattice vectors in primitive cell.
+    '''
     # Check dimension
     if Dim == 2:
         pass
@@ -13,6 +24,11 @@ def Conv2Prim(LvC, AtC, AtTypeInd, Dim, error=1e-3):
     return LatSys, BraLat, LvP
         
 def GetLatSys3D(LvC, error=1e-3):
+    '''
+    This function is to get LatSys from LvC.
+    Input: LvC
+    Output: LatSys
+    '''
     a = np.linalg.norm(LvC[0])
     b = np.linalg.norm(LvC[1])
     c = np.linalg.norm(LvC[2])
@@ -54,6 +70,11 @@ def GetLatSys3D(LvC, error=1e-3):
     return LatSys
      
 def GetBraLat3D(LatSys, AtC, AtTypeInd):
+    '''
+    This function is to get BraLat.
+    Input: LatSys, AtC, AtTypeInd
+    Output: BraLat
+    '''
     if LatSys == "hP":
         BraLat = "hP"
     elif LatSys == "hR":
@@ -89,6 +110,11 @@ def GetBraLat3D(LatSys, AtC, AtTypeInd):
     return BraLat
     
 def CheckBraLat(AtC,AtTypeInd,BraLat,error=1e-3):
+    '''
+    This function is to check face-centered (F) / body-centered (I) / based-centered (S)
+    Input: AtC,AtTypeInd,BraLat
+    Output: True or False
+    '''
     if BraLat == "F":
         LvP0 = np.array([[  0,1/2,1/2],[1/2,  0,1/2],[1/2,1/2,  0]])
     elif BraLat == "I":
@@ -110,6 +136,11 @@ def CheckBraLat(AtC,AtTypeInd,BraLat,error=1e-3):
     return True
                     
 def GetLvP(LvC,BraLat):
+    '''
+    This function is to get LvP from LvC and BraLat
+    Input: LvC,BraLat
+    Output: LvP
+    '''
     if BraLat[1] == "P" or BraLat == "hR":
         LvP = np.copy(LvC)
     elif BraLat[1] == "F":

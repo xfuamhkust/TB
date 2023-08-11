@@ -2,6 +2,14 @@ import numpy as np
 from Conv2Prim import Conv2Prim
 
 def GenConv():
+    '''
+    This function is to generate a random system with a conventional cell.
+    Random variables:
+        Bravais lattice
+        Number and positions of atoms
+        Length(es) (and angle(s)) of lattice vectors
+        Directions of lattice vectors.
+    '''
     BraLat0 = ["aP","mP","mS","oP","oS","oI","oF",\
                "tP","tP","hP","hR","cP","cI","cF"]
     Dim = 3
@@ -121,6 +129,11 @@ def GenConv():
     LvC = LvC @ R.T
     
     return BraLat, LvC, AtC, AtTypeInd, Dim
+
+'''
+The following part is to use GenConv to check the validity of Conv2Prim.
+Only Bravais lattice is checked.
+'''
         
 # def CheckC2P(n=10):
 #     for i in range(n):

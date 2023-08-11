@@ -1,21 +1,46 @@
 import numpy as np
 
+'''
+This code is to find the space group number (SGN) of an input system.
+'''
+
 def FindSGN(AtC,AtTypeInd):
+    '''
+    This function is to find the SGN by comparing the matices (not symmetry itself!) in a smart way.
+    Input:
+        AtC: Atom sites in conventional cell.
+        AtTypeInd: The type of each atom. [0,1,2,2,2] for ABO3.
+    Output:
+        SGN: The index of space group, 1~230.
+    Comments:
+        The core idea is to exclude the unsatisfied groups in each checking.
+        Maxium checking times:   20
+        Average checking times: ~10
+    '''
+    # Load SGID (1010...) & SGU (Space group matrices to check)
     SGID  = np.load("SGID.npy")
     SGU   = np.load("SGU.npy")
     NumSG,NumID = SGID.shape
     Order = np.argsort(np.sum(SGID,axis=0))[::-1]
     Ind = np.ones(NumSG,bool)
     for i in Order:
-        if np.var(SGID[:,i]) < 1e-3:
+        # If the remaining groups can not be distinguished by ith matrix, continue.
+        if np.var(SGID[Ind,i]) < 1e-3:
             continue
+        # Use function CheckSG to check if symetry SGU[i] is in the system.
         flag = CheckSG(SGU[i],AtC,AtTypeInd)
-        IndInvj = np.where(1-(SGID[:,i] == flag)*Ind)
+        # Assign "False" to unsatisfied groups.
+        IndInvj = np.where(1-(SGID[:,i] == flag))
         Ind[IndInvj] = False
+        # If only one space group remains, return its SGN.
         if sum(Ind) == 1:
             return np.where(Ind)[0][0] + 1
 
 def CheckSG(SymLv,AtLv,AtTypeInd,error=1e-3):
+    '''
+    This function is to check if one symmetry matrix is satisfied in system.
+    The choice of origin is important.
+    '''
     NumAt = len(AtLv)
     for iAt in range(1,NumAt+1):
         SymAt0ii = SymLv[0:3,0:3] @ AtLv[iAt-1] + SymLv[0:3,3]
@@ -31,6 +56,9 @@ def CheckSG(SymLv,AtLv,AtTypeInd,error=1e-3):
             return False
     return True
 
+'''
+The following part is to use several material to check the validity of this code.
+'''
 # ABO3
 AtLv = np.array([[ 0.00000000,     0.00000000,     0.00000000],
                  [ 0.50000000,     0.50000000,     0.50000000],
