@@ -3,7 +3,7 @@ import math
 
 
 # this script transforms a primitive cell to a conventional cell
-# TODO: values of errors (epsilon) to be rectified
+# TODO: values of errors (eps/epsXXX) to be rectified
 
 def inputParametersInDegree2S(a, b, c, alpha, beta, gamma):
     """
@@ -110,6 +110,13 @@ def AlgorithmN(S):
     ABCInd = np.argsort(S[0, :])
 
     S = S[:, ABCInd]
+    [[A,B,C],[_,_,_]]=S
+    #for A=B=C
+    if np.isclose(A,B,rtol=epsRel, atol=epsAbs, equal_nan=False)\
+        and np.isclose(B,C,rtol=epsRel, atol=epsAbs, equal_nan=False):
+        xiEtaZetaInd=np.argsort(np.abs(S[1,:]))
+        S[1,:]=S[1,xiEtaZetaInd]
+
 
     # step 2, sort xi and eta
 
@@ -274,7 +281,7 @@ def changeSign(aVec, bVec, cVec, j):
     :param bVec:
     :param cVec:
     :param j: 0,1,2
-    :return: change of  the directions of aVec, bVec, cVec
+    :return: change of  the directions of vectors at position j
     """
     if j == 0:
         aVec = -aVec
@@ -311,6 +318,8 @@ def AlgorithmNVectorTransform(aVec, bVec, cVec):
     aVec = originalVecs[j0]
     bVec = originalVecs[j1]
     cVec = originalVecs[j2]
+    S = vec2S(aVec, bVec, cVec)
+
 
     # print(aVec)
     # print(bVec)
@@ -975,25 +984,36 @@ def checkMatMinDist(mat, matList):
     distList = [np.linalg.norm(mat - elem, ord=2) for elem in matList]
     return np.min(distList)
 
+def removeDuplicatedMatrices(matList):
+    """
+
+    :param matList: a list of matrices
+    :return: unique matrices in the list
+    """
+    eps = 1e-6
+    if len(matList)==0:
+        return []
+    ret=[matList[0]]
+    for elem in matList:
+        if checkMatMinDist(elem,ret)<=eps:
+            continue
+        else:
+            ret.append(elem)
+    return ret
+
 
 def allNormalizedBuergerCharacteristics(S):
     """
 
     :param S: returned from Algorithm B
-    :return: all normalized Buerger characteristics belonging to the same Niggli cell
+    :return: all unique normalized Buerger characteristics belonging to the same Niggli cell
     """
-    eps = 1e-6
+
     potentialBgChars = potentialBuergerCharacteristics(S)  # TODO: only unique matrices should remain!
     normalizedBgCharsAll = [AlgorithmN(STmp) for STmp in potentialBgChars]
-    normalizedBgCharsReturned = []
-    normalizedBgCharsReturned.append(normalizedBgCharsAll[0])
-    for elem in normalizedBgCharsAll:
-        if checkMatMinDist(elem, normalizedBgCharsReturned) <= eps:
-            continue
-        else:
-            normalizedBgCharsReturned.append(elem)
+    normalizedBgCharsUnique=removeDuplicatedMatrices(normalizedBgCharsAll)
+    return normalizedBgCharsUnique
 
-    return normalizedBgCharsReturned
 
     # def checkMatMinDist(mat,matList):
     #     """
@@ -1280,12 +1300,15 @@ def NiggliType(S):
     epsRel = 1e-8
     epsAbs = 1e-6
     [[_, _, _], [xi, eta, zeta]] = S
-    if xi > 0 and eta > 0 and zeta > 0:
-        return 1
-    elif (xi < 0 or np.isclose(xi, 0, rtol=epsRel, atol=epsAbs, equal_nan=False)) \
+    # if xi > 0 and eta > 0 and zeta > 0:
+    #     return 1
+
+    if (xi < 0 or np.isclose(xi, 0, rtol=epsRel, atol=epsAbs, equal_nan=False)) \
             and (eta < 0 or np.isclose(eta, 0, rtol=epsRel, atol=epsAbs, equal_nan=False)) \
             and (zeta < 0 or np.isclose(zeta, 0, rtol=epsRel, atol=epsAbs, equal_nan=False)):
         return 2
+    elif xi > 0 and eta > 0 and zeta > 0:
+        return 1
     else:
         raise ValueError("Invalid Niggli matrix.")
 
@@ -1300,8 +1323,8 @@ def Niggli2ConventionalRow(S):
     D = 1 / 2 * xi
     E = 1 / 2 * eta
     F = 1 / 2 * zeta
-    epsRel = 1e-8
-    epsAbs = 1e-6
+    epsRel = 1e-7
+    epsAbs = 1e-5
 
     # A=B=C
     if np.isclose(A, B, rtol=epsRel, atol=epsAbs, equal_nan=False) \
@@ -1901,45 +1924,148 @@ def chooseLen4Matrix(SofVec, normalizedBgChars):
 def chooseLen3Category3Matrix(SofVec, normalizedBgChars):
     """
 
-    :param SofVec: S matrix of aVec, bVec, cVec
-    :param normalizedBgChars: all possible Buerger cells corresponding to basis aVec, bVec, cVec
+    :param SofVec:
+    :param normalizedBgChars: all 3 possible Buerger cells
     :return: row number, transformation matrix for category 3
     """
     epsRel = 1e-8
     epsAbs = 1e-6
-    [[A, _, _], [_, _, _]] = SofVec
-    # first partition the matrices in normalizedBgChars by the value of zeta
-    positiveA = []
-    negativeA = []
-    for mat in normalizedBgChars:
-        if np.isclose(mat[1, 2], A, rtol=epsRel, atol=epsAbs, equal_nan=False):
-            positiveA.append(mat)
-        elif np.isclose(mat[1, 2], -A, rtol=epsRel, atol=epsAbs, equal_nan=False):
-            negativeA.append(mat)
-    if not (len(positiveA) == 2 and len(negativeA) == 1):
-        raise RuntimeError("Not correct input with 3 Buerger matrices, category 3.")
-    #in positiveA, using q-p/2>p/2
-    S0,S1=positiveA
-    if S0[1,0]>S1[1,0]:
-        row1Mat=S0
-        row2Mat=S1
-    else:
-        row1Mat = S1
-        row2Mat = S0
-    row3Mat=negativeA[0]
-    eps = 1e-5
-    if np.linalg.norm(SofVec - row1Mat, ord=2) <= eps:
+    SXiMin,SXiMiddle,SXiMax=sorted(normalizedBgChars,key=lambda mat:mat[1,0])
+    # eps = 1e-5
+    # if np.linaelg.norm(SofVec - row1Mat, ord=2) <= eps:
+    #     M = np.identity(3, dtype=np.float64)
+    #     return 1, M
+    if np.isclose(SofVec[1,0],SXiMax[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row=1
         M = np.identity(3, dtype=np.float64)
-        return 1, M
-    if np.linalg.norm(SofVec - row2Mat, ord=2) <= eps:
-        M = np.array([[1,0,0],[1,-1,0],[0,0,1]],dtype=np.float64)
-        return 2, M
-    if np.linalg.norm(SofVec - row3Mat, ord=2) <= eps:
-        M = np.array([[1,1,0],[1,0,0],[0,0,-1]],dtype=np.float64)
-        return 3, M
+        return row, M
 
-    raise RuntimeError("SofVec not in normalizedBgChars for category 3")
 
+
+    # if np.linalg.norm(SofVec - row2Mat, ord=2) <= eps:
+    #     M = np.array([[1,0,0],[1,-1,0],[0,0,1]],dtype=np.float64)
+    #     return 2, M
+    if np.isclose(SofVec[1,0],SXiMiddle[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row=2
+        M = np.array([[1, 0, 0], [1, -1, 0], [0, 0, 1]], dtype=np.float64)
+        return row, M
+
+
+
+    # if np.linalg.norm(SofVec - row3Mat, ord=2) <= eps:
+    #     M = np.array([[1,1,0],[1,0,0],[0,0,-1]],dtype=np.float64)
+    #     return 3, M
+    if np.isclose(SofVec[1,0],SXiMin[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row=3
+        M = np.array([[1, 1, 0], [1, 0, 0], [0, 0, -1]], dtype=np.float64)
+        return row, M
+
+
+
+    raise RuntimeError("SofVec not in normalizedBgChars for category 3.")
+
+def chooseLen3Category11Matrix(SofVec, normalizedBgChars):
+    """
+
+    :param SofVec:
+    :param normalizedBgChars: all 3 possible Buerger cells
+    :return: row number, transformation matrix for category 11
+    """
+    epsRel = 1e-8
+    epsAbs = 1e-6
+    SXiMin,SXiMiddle,SXiMax=sorted(normalizedBgChars,key=lambda mat:mat[1,0])
+    if np.isclose(SofVec[1,0],SXiMax[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row=1
+        M = np.identity(3, dtype=np.float64)
+        return row, M
+    if np.isclose(SofVec[1,0],SXiMin[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row=2
+        M=np.array([[1,0,0],[0,-1,0],[0,-1,-1]],dtype=np.float64)
+        return row, M
+    if np.isclose(SofVec[1,0],SXiMiddle[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row=3
+        M=np.array([[1,0,0],[0,-1,0],[1,0,1]],dtype=np.float64)
+        return row, M
+    raise RuntimeError("SofVec not in normalizedBgChars for category 11.")
+
+
+def chooseLen3Category19Matrix(SofVec, normalizedBgChars):
+    """
+
+    :param SofVec:
+    :param normalizedBgChars: all 3 possible Buerger cells
+    :return: row number, transformation matrix for category 19
+    """
+    epsRel = 1e-8
+    epsAbs = 1e-6
+    SXiMin,SXiMiddle,SXiMax=sorted(normalizedBgChars,key=lambda mat:mat[1,0])
+
+    if np.isclose(SofVec[1,0],SXiMax[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row=1
+        M = np.identity(3, dtype=np.float64)
+        return row, M
+    if np.isclose(SofVec[1,0],SXiMin[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row=2
+        M=np.array([[1,0,0],[-1,-1,-1],[0,1,0]],dtype=np.float64)
+        return row, M
+    if np.isclose(SofVec[1,0],SXiMiddle[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row=3
+        M=np.array([[1,0,0],[0,1,0],[-1,-1,-1]],dtype=np.float64)
+        return row, M
+    raise RuntimeError("SofVec not in normalizedBgChars for category 19.")
+
+def chooseLen3Category13Matrix(SofVec, normalizedBgChars):
+    """
+
+    :param SofVec:
+    :param normalizedBgChars: all 3 possible Buerger cells
+    :return: row number, transformation matrix for category 13
+    """
+    epsRel = 1e-8
+    epsAbs = 1e-6
+    SXiMin,SXiMiddle,SXiMax=sorted(normalizedBgChars,key=lambda mat:mat[1,0])
+    if np.isclose(SofVec[1,0],SXiMax[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row=1
+        M = np.identity(3, dtype=np.float64)
+        return row, M
+    if np.isclose(SofVec[1,0],SXiMin[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row=2
+        M=np.array([[1,0,0],[0,-1,-1],[0,0,-1]], dtype=np.float64)
+        return row, M
+    if np.isclose(SofVec[1,0],SXiMiddle[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row=3
+        M=np.array([[1,0,0],[1,1,0],[0,0,-1]],dtype=np.float64)
+        return row, M
+
+    raise RuntimeError("SofVec not in normalizedBgChars for category 13.")
+
+
+
+def chooseLen3Category18Matrix(SofVec, normalizedBgChars):
+    """
+
+    :param SofVec:
+    :param normalizedBgChars: all 3 possible Buerger cells
+    :return: row number, transformation matrix for category 18
+    """
+    epsRel = 1e-8
+    epsAbs = 1e-6
+    SEtaMin,SEtaMiddle,SEtaMax=sorted(normalizedBgChars,key=lambda mat: mat[1,1])
+
+    if np.isclose(SofVec[1,1],SEtaMax[1,1],rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row=1
+        M = np.identity(3, dtype=np.float64)
+        return row, M
+    if np.isclose(SofVec[1,1],SEtaMiddle[1,1],rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row=2
+        M=np.array([[1,0,0],[0,1,0],[0,1,-1]],dtype=np.float64)
+        return row, M
+    if np.isclose(SofVec[1,1],SEtaMin[1,1],rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row=2
+        M=np.array([[1,0,0],[0,-1,-1],[0,-1,0]],dtype=np.float64)
+        return row, M
+
+    raise RuntimeError("SofVec not in normalizedBgChars for category 18.")
 
 
 
@@ -2496,8 +2622,21 @@ def Buerger2NiggliBasis(SofVec, normalizedBgChars):
     #if there are 3 Buerger cells
     if len(normalizedBgChars)==3:
         category=selectLen3(normalizedBgChars)
-        row,M=chooseLen3Category3Matrix(SofVec, normalizedBgChars)#TODO: not finished
-        return [M,[category,row]]
+        if category==3:
+            row,M=chooseLen3Category3Matrix(SofVec, normalizedBgChars)
+            return [M,[category,row]]
+        if category==11:
+            row,M=chooseLen3Category11Matrix(SofVec, normalizedBgChars)
+            return [M, [category, row]]
+        if category==19:
+            row, M = chooseLen3Category19Matrix(SofVec, normalizedBgChars)
+            return [M, [category, row]]
+        if category==18:
+            row, M = chooseLen3Category18Matrix(SofVec, normalizedBgChars)
+            return [M, [category, row]]
+        if category==13:
+            row, M = chooseLen3Category13Matrix(SofVec, normalizedBgChars)
+            return [M, [category, row]]
 
     #if there are 2 Buerger cells
     if len(normalizedBgChars)==2:
@@ -2527,8 +2666,27 @@ def Buerger2NiggliBasis(SofVec, normalizedBgChars):
             category, row, M = chooseLen2Partition8Matrix(SofVec,normalizedBgChars,partitionList)
             return [M, [category, row]]
 
+    raise  RuntimeError("Invalid number of Buerger matrices: "+str(len(normalizedBgChars)))
 
 
+
+def basisBuerger2Niggli(MB2N,aVecOfB, bVecOfB, cVecOfB):
+    """
+
+    :param MB2N: Tranformation matrix M from Buerger basis to Niggli basis
+    :param aVecOfB: vector a in Buerger basis
+    :param bVecOfB: vector b in Buerger basis
+    :param cVecOfB: vector c in Buerger basis
+    :return:
+    """
+
+    [[M00,M01,M02],[M10,M11,M12],[M20,M21,M22]]=MB2N
+
+    aVecOfN=M00*aVecOfB+M01*bVecOfB+M02*cVecOfB
+    bVecOfN=M10*aVecOfB+M11*bVecOfB+M12*cVecOfB
+    cVecOfN=M20*aVecOfB+M21*bVecOfB+M22*cVecOfB
+
+    return aVecOfN,bVecOfN,cVecOfN
 
 
 
@@ -2550,31 +2708,44 @@ def prim2convWithBasis(aVec, bVec, cVec):
     aVecOfB, bVecOfB, cVecOfB = AlgorithmBVectorTransform(aVec, bVec, cVec)
 
     SofVec = vec2S(aVecOfB, bVecOfB, cVecOfB)  # basis for one Buerger cell
+
+
     # find all Buerger cells
     normalizedBgChars = allNormalizedBuergerCharacteristics(SofVec)
+    MCategoryRow=Buerger2NiggliBasis(SofVec, normalizedBgChars)
+    MBuerger2Niggli=MCategoryRow[0]
+    # MBuerger2Niggli=np.array([[1,1,0],[1,0,0],[0,0,-1]],dtype=np.float64)
+    aVecOfN,bVecOfN,cVecOfN=basisBuerger2Niggli(MBuerger2Niggli,aVecOfB,bVecOfB,cVecOfB)
+    #testing
+    SofN=vec2S(aVecOfN,bVecOfN,cVecOfN)
+    checkAnglesOfS(SofN)
+    checkNiggliCell(SofN)
+    # Niggli cell to conventional cell (angle in degrees)
+    convParamsAndInfo = getConventionalInDegree(SofN)
+    return convParamsAndInfo
 
-# test data for aP #passed
+# test data for aP #S passed, basis passed
 # a=np.array([ 0.23901248, -0.24064142,  0.64521519])
 # b=np.array( [ 0.88164565, -0.46578039,  0.22768941])
 # c=np.array([ 1.0949293,  -0.39030657 , 0.76405586])
-# test data for mP #passed
+# test data for mP #S passed, basis passed
 # a=np.array([1.80000000e+00,0.00000000e+00,0.00000000e+00])
 # b=np.array([0.00000000e+00,1.00000000e+00,0.00000000e+00])
 # b=a+b
 # c=np.array([2.26182247e-17,3.69383642e-01,3.68151541e+00])
 
-# #test data for mS #passed
+# #test data for mS #S passed, basis passed
 # a=np.array([-0.0562122,  -0.13247576,  0.64146155])
 # b=np.array([-0.47766339 , 0.43155659 , 0.13333848])
 # c=np.array( [-0.01755021,  0.61170953,  0.69357314])
 
 # test data for oP
-# direct primitive #passed
+# direct primitive #S passed, basis passed
 # a=np.array([ 0.24182656,0.07482303,0.29679825])
 # b=np.array([ 0.3111148,-0.51866721,-0.12273512])
 # c=np.array( [ 0.24497009,0.20649208,-0.25165457])
 
-# #diagonal primitive#passed
+# #diagonal primitive#S passed, basis passed
 # a=np.array([ 0.24182656,0.07482303,0.29679825])
 # b=np.array([ 0.3111148,-0.51866721,-0.12273512])
 #
@@ -2583,23 +2754,23 @@ def prim2convWithBasis(aVec, bVec, cVec):
 
 
 # test data for oI
-# direct primitive #passed
+# direct primitive #S passed, basis passed
 # a=np.array([0.11821031,-0.36746163,0.35876362])
 # b=np.array([0.28558464,0.30117927,-0.32472376])
 # c=np.array([-0.15474425,0.44772062,0.2308972])
-# diagonal primitive#passed
+# diagonal primitive#S passed, basis passed
 # a=np.array([0.11821031,-0.36746163,0.35876362])
 # b=np.array([0.28558464,0.30117927,-0.32472376])
 # b=a+b
 # c=np.array([-0.15474425,0.44772062,0.2308972])
 
 # test data for oS
-# # direct primitive # passed
-# test data 1
+# # direct primitive
+# test data 1 #S passed, basis passed
 # a=np.array([-0.03336087,0.32522261,  0.28289925])
 # b=np.array([ 0.20039596, -0.23046743, -0.30600801])
 # c=np.array([ 0.36131684, -0.48934562,  0.60516279])
-# test data 2
+# test data 2 #S passed, basis passed
 # vec1=np.array([1,0,0])
 # vec2=np.array([0,1,0])*1.2
 # vec3=np.array([0,0,1])*1.8
@@ -2609,17 +2780,17 @@ def prim2convWithBasis(aVec, bVec, cVec):
 
 
 # test data for oF
-# direct primitive #passed
+# direct primitive #S passed, basis passed
 # a=np.array([ 0.00074449 , 0.34546068 , 0.16319794])
 # b=np.array([ 0.16904866, -0.00225161,  0.1483042 ])
 # c=np.array( [ 0.1603072 ,  0.35175292 , 0.00484137])
 
 # test data for tP
-# direct primitive #passed
+# direct primitive #S passed, basis passed
 # a=np.array([-0.01177838,  0.02464893,  0.03547314])
 # b=np.array([ 0.04023329, -0.00712276,  0.01830825])
 # c=np.array([ 0.22313218,  0.52073779, -0.28775274])
-# diagonal primitive#passed
+# diagonal primitive#S passed, basis passed
 # a=np.array([-0.01177838,  0.02464893,  0.03547314])
 # b=np.array([ 0.04023329, -0.00712276,  0.01830825])
 # b=a+b
@@ -2627,22 +2798,22 @@ def prim2convWithBasis(aVec, bVec, cVec):
 
 
 # test data for tI
-# direct primitive #passed
+# direct primitive #S passed, basis passed
 # a=np.array([ 0.25168644,  0.13322825, -0.0714029 ])
 # b=np.array([-0.28808599, -0.05343177, -0.01859346])
 # c=np.array([-0.03187261,  0.16103162,  0.24340739])
-# diagonal primitive##passed
+# diagonal primitive##S passed, basis passed
 # a=np.array([ 0.25168644,  0.13322825, -0.0714029 ])
 # b=np.array([-0.28808599, -0.05343177, -0.01859346])
 # b=a+b
 # c=np.array([-0.03187261,  0.16103162,  0.24340739])
 
 # test data for hR
-# direct primitive#passed
+# direct primitive#S passed, basis passed
 # a=np.array([-0.98242063,  0.09226284,  0.62566037])
 # b=np.array([ 0.3316406,   1.09929108,  0.21607231])
 # c=np.array([-0.52470639,0.27509317,-1.00703553])
-# diagonal primitive#passed
+# diagonal primitive#S passed, basis passed
 # a=np.array([-0.98242063,  0.09226284,  0.62566037])
 # b=np.array([ 0.3316406,   1.09929108,  0.21607231])
 # b=a+b
@@ -2650,39 +2821,39 @@ def prim2convWithBasis(aVec, bVec, cVec):
 
 
 # test data for hP
-# direct primitive# passed
+# direct primitive#S passed, basis passed
 # a=np.array([ 0.30446612,  0.56274179,  0.10568754])
 # b=np.array([ 0.30516758, -0.56044481,  0.11542165])
 # c=np.array( [ 0.087114 ,  -0.002027 ,  -0.24016629])
 
 # test data for cP
-# direct primitive#passed
+# direct primitive#S passed, basis passed
 # a=np.array([ 0.35027557, -0.08592507,  0.02108803])
 # b=np.array([ 0.08777518,  0.32668059, -0.12687042])
 # c=np.array([ 0.01110589,  0.12813067,  0.33760922])
-# diagonal primitive#passed
+# diagonal primitive#S passed, basis passed
 # a=np.array([ 0.35027557, -0.08592507,  0.02108803])
 # b=np.array([ 0.08777518,  0.32668059, -0.12687042])
 # b=a+b
 # c=np.array([ 0.01110589,  0.12813067,  0.33760922])
 
 # test data for cI
-# direct primitive#passed
+# direct primitive#S passed, basis passed
 # a=np.array([-0.15960944,  0.17685658,  0.13952733])
 # b=np.array([ 0.14663659, -0.15176054,  0.17801053])
 # c=np.array( [ 0.17166328,  0.14075557, -0.16413678])
-# diagonal primitive#passed
+# diagonal primitive#S passed, basis passed
 # a=np.array([-0.15960944,  0.17685658,  0.13952733])
 # b=np.array([ 0.14663659, -0.15176054,  0.17801053])
 # b=a+b
 # c=np.array( [ 0.17166328,  0.14075557, -0.16413678])
 
 # test data for cF
-# direct primitive #passed
+# direct primitive #S passed, basis passed
 # a=np.array([-0.02491603,  0.55194334, -0.10047505])
 # b=np.array([ 0.13000506,  0.36546768,  0.40606594])
 # c=np.array( [ 0.47296096,  0.30085982, -0.0338938 ])
-# diagonal primitive #passed
+# diagonal primitive #S  passed, basis  passed
 
 # a=np.array([-0.02491603,  0.55194334, -0.10047505])
 # b=np.array([ 0.13000506,  0.36546768,  0.40606594])
@@ -2693,14 +2864,20 @@ def prim2convWithBasis(aVec, bVec, cVec):
 # prim2convWithBasis(a,b,c)
 
 ####to input S matrix
-# aLen=np.linalg.norm(a,ord=2)
-# bLen=np.linalg.norm(b,ord=2)
-# cLen=np.linalg.norm(c,ord=2)
-# # print("original lenths are: "+str(aLen)+", "+str(bLen)+", "+str(cLen))
-# alpha=np.arccos(c.dot(b)/(cLen*bLen))*180/np.pi
-# beta=np.arccos(a.dot(c)/(aLen*cLen))*180/np.pi
-# gamma=np.arccos(a.dot(b)/(aLen*bLen))*180/np.pi
+aLen=np.linalg.norm(a,ord=2)
+bLen=np.linalg.norm(b,ord=2)
+cLen=np.linalg.norm(c,ord=2)
+# print("original lenths are: "+str(aLen)+", "+str(bLen)+", "+str(cLen))
+alpha=np.arccos(c.dot(b)/(cLen*bLen))*180/np.pi
+beta=np.arccos(a.dot(c)/(aLen*cLen))*180/np.pi
+gamma=np.arccos(a.dot(b)/(aLen*bLen))*180/np.pi
 #
-# rst=prim2conv(aLen,bLen,cLen,alpha,beta,gamma)
-#
-# print(rst)
+rstS=prim2convWithS(aLen,bLen,cLen,alpha,beta,gamma)
+
+rstBasis=prim2convWithBasis(a,b,c)
+
+print("S: "+str(rstS))
+
+print("==================")
+
+print("Basis: "+str(rstBasis))
