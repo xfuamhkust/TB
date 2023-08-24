@@ -1,0 +1,15 @@
+Name Si
+Dim 3
+Spin 0
+Nbr 1
+LatType primitive
+LatVec
+ 0.00000000     0.50000000     0.50000000
+ 0.50000000     0.00000000     0.50000000
+ 0.50000000     0.50000000     0.00000000
+AtTpNum 1
+Bases
+Si 2 s px py pz
+AtomSite
+0    0    0
+0.25     0.25     0.25

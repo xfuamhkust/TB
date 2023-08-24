@@ -110,13 +110,12 @@ def AlgorithmN(S):
     ABCInd = np.argsort(S[0, :])
 
     S = S[:, ABCInd]
-    [[A,B,C],[_,_,_]]=S
-    #for A=B=C
-    if np.isclose(A,B,rtol=epsRel, atol=epsAbs, equal_nan=False)\
-        and np.isclose(B,C,rtol=epsRel, atol=epsAbs, equal_nan=False):
-        xiEtaZetaInd=np.argsort(np.abs(S[1,:]))
-        S[1,:]=S[1,xiEtaZetaInd]
-
+    [[A, B, C], [_, _, _]] = S
+    # for A=B=C
+    if np.isclose(A, B, rtol=epsRel, atol=epsAbs, equal_nan=False) \
+            and np.isclose(B, C, rtol=epsRel, atol=epsAbs, equal_nan=False):
+        xiEtaZetaInd = np.argsort(np.abs(S[1, :]))
+        S[1, :] = S[1, xiEtaZetaInd]
 
     # step 2, sort xi and eta
 
@@ -320,7 +319,6 @@ def AlgorithmNVectorTransform(aVec, bVec, cVec):
     cVec = originalVecs[j2]
     S = vec2S(aVec, bVec, cVec)
 
-
     # print(aVec)
     # print(bVec)
     # print(cVec)
@@ -487,6 +485,15 @@ def AlgorithmB5VectorTransform(aVec, bVec, cVec):
     aVec, bVec, cVec = AlgorithmNVectorTransform(aVec, bVec, cVec)
 
     return aVec, bVec, cVec
+
+
+def sanityCheckNot0Vec(vec):
+    epsRel = 1e-8
+    epsAbs = 1e-6
+
+    l = np.linalg.norm(vec, ord=2)
+    if np.isclose(l, 0, rtol=epsRel, atol=epsAbs, equal_nan=False):
+        raise ValueError("vector is 0.")
 
 
 # assemble algorithm B's linear transformation form
@@ -984,6 +991,7 @@ def checkMatMinDist(mat, matList):
     distList = [np.linalg.norm(mat - elem, ord=2) for elem in matList]
     return np.min(distList)
 
+
 def removeDuplicatedMatrices(matList):
     """
 
@@ -991,11 +999,11 @@ def removeDuplicatedMatrices(matList):
     :return: unique matrices in the list
     """
     eps = 1e-6
-    if len(matList)==0:
+    if len(matList) == 0:
         return []
-    ret=[matList[0]]
+    ret = [matList[0]]
     for elem in matList:
-        if checkMatMinDist(elem,ret)<=eps:
+        if checkMatMinDist(elem, ret) <= eps:
             continue
         else:
             ret.append(elem)
@@ -1011,9 +1019,8 @@ def allNormalizedBuergerCharacteristics(S):
 
     potentialBgChars = potentialBuergerCharacteristics(S)  # TODO: only unique matrices should remain!
     normalizedBgCharsAll = [AlgorithmN(STmp) for STmp in potentialBgChars]
-    normalizedBgCharsUnique=removeDuplicatedMatrices(normalizedBgCharsAll)
+    normalizedBgCharsUnique = removeDuplicatedMatrices(normalizedBgCharsAll)
     return normalizedBgCharsUnique
-
 
     # def checkMatMinDist(mat,matList):
     #     """
@@ -1743,7 +1750,8 @@ def getConventional(S):
 
     convParamsAndInfo = {"a": aConv, "b": bConv, "c": cConv, "alpha": alphaConv, "beta": betaConv, "gamma": gammaConv,
                          "Crystal System": convInfoList["Lattice symmetry"],
-                         "Bravais type": convInfoList["Bravais type"]}
+                         "Bravais type": convInfoList["Bravais type"],
+                         "Transformation matrix": convInfoList["Transformation matrix"]}
     # the angles are in radians
     return convParamsAndInfo
 
@@ -1891,35 +1899,36 @@ def chooseLen4Matrix(SofVec, normalizedBgChars):
             negativeA.append(mat)
     if not (len(positiveA) == 2 and len(negativeA) == 2):
         raise RuntimeError("Not correct input with 4 Buerger matrices.")
-    #determine the row of matrices in category 23, by using A-q/2>q/2
-    S0,S1=positiveA
-    if S0[1,1]>S1[1,1]:
-        row1Mat=S0
-        row2Mat=S1
+    # determine the row of matrices in category 23, by using A-q/2>q/2
+    S0, S1 = positiveA
+    if S0[1, 1] > S1[1, 1]:
+        row1Mat = S0
+        row2Mat = S1
     else:
         row1Mat = S1
         row2Mat = S0
-    S2,S3=negativeA
-    if S2[1,1]>S3[1,1]:
-        row3Mat=S2
-        row4Mat=S3
+    S2, S3 = negativeA
+    if S2[1, 1] > S3[1, 1]:
+        row3Mat = S2
+        row4Mat = S3
     else:
         row3Mat = S3
         row4Mat = S2
     eps = 1e-5
-    if np.linalg.norm(SofVec-row1Mat,ord=2)<=eps:
+    if np.linalg.norm(SofVec - row1Mat, ord=2) <= eps:
         M = np.identity(3, dtype=np.float64)
         return category, 1, M
     if np.linalg.norm(SofVec - row2Mat, ord=2) <= eps:
-        M = np.array([[1,0,0],[0,1,0],[0,1,-1]], dtype=np.float64)
+        M = np.array([[1, 0, 0], [0, 1, 0], [0, 1, -1]], dtype=np.float64)
         return category, 2, M
     if np.linalg.norm(SofVec - row3Mat, ord=2) <= eps:
-        M = np.array([[1,0,0],[1,1,0],[1,1,1]], dtype=np.float64)
+        M = np.array([[1, 0, 0], [1, 1, 0], [1, 1, 1]], dtype=np.float64)
         return category, 3, M
     if np.linalg.norm(SofVec - row4Mat, ord=2) <= eps:
-        M = np.array([[1,0,0],[1,1,0],[0,0,-1]])
+        M = np.array([[1, 0, 0], [1, 1, 0], [0, 0, -1]])
         return category, 4, M
     raise RuntimeError("SofVec not in normalizedBgChars with length 4")
+
 
 def chooseLen3Category3Matrix(SofVec, normalizedBgChars):
     """
@@ -1930,39 +1939,34 @@ def chooseLen3Category3Matrix(SofVec, normalizedBgChars):
     """
     epsRel = 1e-8
     epsAbs = 1e-6
-    SXiMin,SXiMiddle,SXiMax=sorted(normalizedBgChars,key=lambda mat:mat[1,0])
+    SXiMin, SXiMiddle, SXiMax = sorted(normalizedBgChars, key=lambda mat: mat[1, 0])
     # eps = 1e-5
     # if np.linaelg.norm(SofVec - row1Mat, ord=2) <= eps:
     #     M = np.identity(3, dtype=np.float64)
     #     return 1, M
-    if np.isclose(SofVec[1,0],SXiMax[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=1
+    if np.isclose(SofVec[1, 0], SXiMax[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 1
         M = np.identity(3, dtype=np.float64)
         return row, M
-
-
 
     # if np.linalg.norm(SofVec - row2Mat, ord=2) <= eps:
     #     M = np.array([[1,0,0],[1,-1,0],[0,0,1]],dtype=np.float64)
     #     return 2, M
-    if np.isclose(SofVec[1,0],SXiMiddle[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=2
+    if np.isclose(SofVec[1, 0], SXiMiddle[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 2
         M = np.array([[1, 0, 0], [1, -1, 0], [0, 0, 1]], dtype=np.float64)
         return row, M
-
-
 
     # if np.linalg.norm(SofVec - row3Mat, ord=2) <= eps:
     #     M = np.array([[1,1,0],[1,0,0],[0,0,-1]],dtype=np.float64)
     #     return 3, M
-    if np.isclose(SofVec[1,0],SXiMin[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=3
+    if np.isclose(SofVec[1, 0], SXiMin[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 3
         M = np.array([[1, 1, 0], [1, 0, 0], [0, 0, -1]], dtype=np.float64)
         return row, M
 
-
-
     raise RuntimeError("SofVec not in normalizedBgChars for category 3.")
+
 
 def chooseLen3Category11Matrix(SofVec, normalizedBgChars):
     """
@@ -1973,18 +1977,18 @@ def chooseLen3Category11Matrix(SofVec, normalizedBgChars):
     """
     epsRel = 1e-8
     epsAbs = 1e-6
-    SXiMin,SXiMiddle,SXiMax=sorted(normalizedBgChars,key=lambda mat:mat[1,0])
-    if np.isclose(SofVec[1,0],SXiMax[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=1
+    SXiMin, SXiMiddle, SXiMax = sorted(normalizedBgChars, key=lambda mat: mat[1, 0])
+    if np.isclose(SofVec[1, 0], SXiMax[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 1
         M = np.identity(3, dtype=np.float64)
         return row, M
-    if np.isclose(SofVec[1,0],SXiMin[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=2
-        M=np.array([[1,0,0],[0,-1,0],[0,-1,-1]],dtype=np.float64)
+    if np.isclose(SofVec[1, 0], SXiMin[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 2
+        M = np.array([[1, 0, 0], [0, -1, 0], [0, -1, -1]], dtype=np.float64)
         return row, M
-    if np.isclose(SofVec[1,0],SXiMiddle[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=3
-        M=np.array([[1,0,0],[0,-1,0],[1,0,1]],dtype=np.float64)
+    if np.isclose(SofVec[1, 0], SXiMiddle[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 3
+        M = np.array([[1, 0, 0], [0, -1, 0], [1, 0, 1]], dtype=np.float64)
         return row, M
     raise RuntimeError("SofVec not in normalizedBgChars for category 11.")
 
@@ -1998,21 +2002,22 @@ def chooseLen3Category19Matrix(SofVec, normalizedBgChars):
     """
     epsRel = 1e-8
     epsAbs = 1e-6
-    SXiMin,SXiMiddle,SXiMax=sorted(normalizedBgChars,key=lambda mat:mat[1,0])
+    SXiMin, SXiMiddle, SXiMax = sorted(normalizedBgChars, key=lambda mat: mat[1, 0])
 
-    if np.isclose(SofVec[1,0],SXiMax[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=1
+    if np.isclose(SofVec[1, 0], SXiMax[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 1
         M = np.identity(3, dtype=np.float64)
         return row, M
-    if np.isclose(SofVec[1,0],SXiMin[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=2
-        M=np.array([[1,0,0],[-1,-1,-1],[0,1,0]],dtype=np.float64)
+    if np.isclose(SofVec[1, 0], SXiMin[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 2
+        M = np.array([[1, 0, 0], [-1, -1, -1], [0, 1, 0]], dtype=np.float64)
         return row, M
-    if np.isclose(SofVec[1,0],SXiMiddle[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=3
-        M=np.array([[1,0,0],[0,1,0],[-1,-1,-1]],dtype=np.float64)
+    if np.isclose(SofVec[1, 0], SXiMiddle[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 3
+        M = np.array([[1, 0, 0], [0, 1, 0], [-1, -1, -1]], dtype=np.float64)
         return row, M
     raise RuntimeError("SofVec not in normalizedBgChars for category 19.")
+
 
 def chooseLen3Category13Matrix(SofVec, normalizedBgChars):
     """
@@ -2023,22 +2028,21 @@ def chooseLen3Category13Matrix(SofVec, normalizedBgChars):
     """
     epsRel = 1e-8
     epsAbs = 1e-6
-    SXiMin,SXiMiddle,SXiMax=sorted(normalizedBgChars,key=lambda mat:mat[1,0])
-    if np.isclose(SofVec[1,0],SXiMax[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=1
+    SXiMin, SXiMiddle, SXiMax = sorted(normalizedBgChars, key=lambda mat: mat[1, 0])
+    if np.isclose(SofVec[1, 0], SXiMax[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 1
         M = np.identity(3, dtype=np.float64)
         return row, M
-    if np.isclose(SofVec[1,0],SXiMin[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=2
-        M=np.array([[1,0,0],[0,-1,-1],[0,0,-1]], dtype=np.float64)
+    if np.isclose(SofVec[1, 0], SXiMin[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 2
+        M = np.array([[1, 0, 0], [0, -1, -1], [0, 0, -1]], dtype=np.float64)
         return row, M
-    if np.isclose(SofVec[1,0],SXiMiddle[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=3
-        M=np.array([[1,0,0],[1,1,0],[0,0,-1]],dtype=np.float64)
+    if np.isclose(SofVec[1, 0], SXiMiddle[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 3
+        M = np.array([[1, 0, 0], [1, 1, 0], [0, 0, -1]], dtype=np.float64)
         return row, M
 
     raise RuntimeError("SofVec not in normalizedBgChars for category 13.")
-
 
 
 def chooseLen3Category18Matrix(SofVec, normalizedBgChars):
@@ -2050,23 +2054,22 @@ def chooseLen3Category18Matrix(SofVec, normalizedBgChars):
     """
     epsRel = 1e-8
     epsAbs = 1e-6
-    SEtaMin,SEtaMiddle,SEtaMax=sorted(normalizedBgChars,key=lambda mat: mat[1,1])
+    SEtaMin, SEtaMiddle, SEtaMax = sorted(normalizedBgChars, key=lambda mat: mat[1, 1])
 
-    if np.isclose(SofVec[1,1],SEtaMax[1,1],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=1
+    if np.isclose(SofVec[1, 1], SEtaMax[1, 1], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 1
         M = np.identity(3, dtype=np.float64)
         return row, M
-    if np.isclose(SofVec[1,1],SEtaMiddle[1,1],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=2
-        M=np.array([[1,0,0],[0,1,0],[0,1,-1]],dtype=np.float64)
+    if np.isclose(SofVec[1, 1], SEtaMiddle[1, 1], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 2
+        M = np.array([[1, 0, 0], [0, 1, 0], [0, 1, -1]], dtype=np.float64)
         return row, M
-    if np.isclose(SofVec[1,1],SEtaMin[1,1],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=2
-        M=np.array([[1,0,0],[0,-1,-1],[0,-1,0]],dtype=np.float64)
+    if np.isclose(SofVec[1, 1], SEtaMin[1, 1], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 2
+        M = np.array([[1, 0, 0], [0, -1, -1], [0, -1, 0]], dtype=np.float64)
         return row, M
 
     raise RuntimeError("SofVec not in normalizedBgChars for category 18.")
-
 
 
 def partitionLen2(normalizedBgChars):
@@ -2075,55 +2078,56 @@ def partitionLen2(normalizedBgChars):
     :param normalizedBgChars: all possible Buerger cells with length 2
     :return: possible categories for 2 Buerger cells
     """
-    [[A,B,C],[_,_,_]]=normalizedBgChars[0]
+    [[A, B, C], [_, _, _]] = normalizedBgChars[0]
     epsRel = 1e-8
     epsAbs = 1e-6
-    S0,S1=normalizedBgChars
-    #case A=B
-    if np.isclose(A,B, rtol=epsRel, atol=epsAbs, equal_nan=False):
+    S0, S1 = normalizedBgChars
+    # case A=B
+    if np.isclose(A, B, rtol=epsRel, atol=epsAbs, equal_nan=False):
         # 1
-        xi0=S0[1,0]
-        xi1=S1[1,0]
+        xi0 = S0[1, 0]
+        xi1 = S1[1, 0]
 
-        if (xi0>0 and (xi1<0 or np.isclose(xi1,0, rtol=epsRel, atol=epsAbs, equal_nan=False)))\
-            or (xi1>0 and (xi0<0 or np.isclose(xi0,0, rtol=epsRel, atol=epsAbs, equal_nan=False))):
-            return [1,2,4,6,7,8]
-        #2
-        eta0=S0[1,1]
-        eta1=S1[1,1]
-        if eta0>0 and eta1>0:
+        if (xi0 > 0 and (xi1 < 0 or np.isclose(xi1, 0, rtol=epsRel, atol=epsAbs, equal_nan=False))) \
+                or (xi1 > 0 and (xi0 < 0 or np.isclose(xi0, 0, rtol=epsRel, atol=epsAbs, equal_nan=False))):
+            return [1, 2, 4, 6, 7, 8]
+        # 2
+        eta0 = S0[1, 1]
+        eta1 = S1[1, 1]
+        if eta0 > 0 and eta1 > 0:
             return [5]
-    #case A<B=C
-    if A<B and np.isclose(B,C,rtol=epsRel, atol=epsAbs, equal_nan=False):
+    # case A<B=C
+    if A < B and np.isclose(B, C, rtol=epsRel, atol=epsAbs, equal_nan=False):
         # 1
         xi0 = S0[1, 0]
         xi1 = S1[1, 0]
         if (xi0 > 0 and (xi1 < 0 or np.isclose(xi1, 0, rtol=epsRel, atol=epsAbs, equal_nan=False))) \
                 or (xi1 > 0 and (xi0 < 0 or np.isclose(xi0, 0, rtol=epsRel, atol=epsAbs, equal_nan=False))):
-            return [1,10,12,14,15]
+            return [1, 10, 12, 14, 15]
         # 2
-        if xi0>0 and xi1>0:
+        if xi0 > 0 and xi1 > 0:
             return [9]
-        #3
-        if xi0<0 and xi1<0:
-            return [16,17]
-    #case A<B<C
-    if A<B and B<C:
+        # 3
+        if xi0 < 0 and xi1 < 0:
+            return [16, 17]
+    # case A<B<C
+    if A < B and B < C:
         # 1
         xi0 = S0[1, 0]
         xi1 = S1[1, 0]
         if (xi0 > 0 and (xi1 < 0 or np.isclose(xi1, 0, rtol=epsRel, atol=epsAbs, equal_nan=False))) \
                 or (xi1 > 0 and (xi0 < 0 or np.isclose(xi0, 0, rtol=epsRel, atol=epsAbs, equal_nan=False))):
             return [4, 10, 24, 25, 26, 27, 28]
-        #2
-        if xi0>0 and xi1>0:
-            return [5,9,21]
+        # 2
+        if xi0 > 0 and xi1 > 0:
+            return [5, 9, 21]
         #
         return [22]
 
     raise RuntimeError("Wrong normalized matrices for length 2.")
 
-def chooseLen2Partition1Matrix(SofVec,normalizedBgChars,ptn):
+
+def chooseLen2Partition1Matrix(SofVec, normalizedBgChars, ptn):
     """
     len(normalizedBgChars)==2
     :param SofVec
@@ -2133,99 +2137,99 @@ def chooseLen2Partition1Matrix(SofVec,normalizedBgChars,ptn):
     """
     epsRel = 1e-8
     epsAbs = 1e-6
-    if ptn!=[1,2,4,6,7,8]:
+    if ptn != [1, 2, 4, 6, 7, 8]:
         raise ValueError("Wrong partition type for [1,2,4,6,7,8].")
-    #category 1, 4
-    S0,S1=normalizedBgChars
-    [[A,B,C],[_,_,_]]=S0
-    if np.isclose(S0[1,0],0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
-            or np.isclose(S1[1,0],0,rtol=epsRel, atol=epsAbs, equal_nan=False):
-        #TODO: for case q=A, category 1 and 4 is not distinguishable!
-        if np.isclose(B,C,rtol=epsRel, atol=epsAbs, equal_nan=False):
-            if np.isclose(SofVec[1,0],0,rtol=epsRel, atol=epsAbs, equal_nan=False):
-                M=np.array([[1,0,0],[1,1,0],[0,0,-1]])
-                row=2
-                return 1, row, M
-            if SofVec[1,0]>0:
-                M=np.identity(3,dtype=np.float64)
-                row=1
-                return 1,row,M
-
-        if np.abs(S0[1,2])>np.abs(S1[1,1]):
-            if np.isclose(SofVec[1,0],0,rtol=epsRel, atol=epsAbs, equal_nan=False):
-                M=np.array([[1,0,0],[1,1,0],[0,0,-1]])
-                row=2
-                return 1, row, M
-            if SofVec[1,0]>0:
-                M=np.identity(3,dtype=np.float64)
-                row=1
-                return 1,row,M
-        if np.abs(S1[1,1])>np.abs(S0[1,2]):
+    # category 1, 4
+    S0, S1 = normalizedBgChars
+    [[A, B, C], [_, _, _]] = S0
+    if np.isclose(S0[1, 0], 0, rtol=epsRel, atol=epsAbs, equal_nan=False) \
+            or np.isclose(S1[1, 0], 0, rtol=epsRel, atol=epsAbs, equal_nan=False):
+        # TODO: for case q=A, category 1 and 4 is not distinguishable!
+        if np.isclose(B, C, rtol=epsRel, atol=epsAbs, equal_nan=False):
             if np.isclose(SofVec[1, 0], 0, rtol=epsRel, atol=epsAbs, equal_nan=False):
-                M=np.array([[1,0,0],[0,-1,0],[1,0,1]],dtype=np.float64)
-                row=2
-                return 4,row,M
-            if SofVec[1,0]>0:
-                M=np.identity(3,dtype=np.float64)
-                row=1
-                return 4, row,M
+                M = np.array([[1, 0, 0], [1, 1, 0], [0, 0, -1]])
+                row = 2
+                return 1, row, M
+            if SofVec[1, 0] > 0:
+                M = np.identity(3, dtype=np.float64)
+                row = 1
+                return 1, row, M
 
+        if np.abs(S0[1, 2]) > np.abs(S1[1, 1]):
+            if np.isclose(SofVec[1, 0], 0, rtol=epsRel, atol=epsAbs, equal_nan=False):
+                M = np.array([[1, 0, 0], [1, 1, 0], [0, 0, -1]])
+                row = 2
+                return 1, row, M
+            if SofVec[1, 0] > 0:
+                M = np.identity(3, dtype=np.float64)
+                row = 1
+                return 1, row, M
+        if np.abs(S1[1, 1]) > np.abs(S0[1, 2]):
+            if np.isclose(SofVec[1, 0], 0, rtol=epsRel, atol=epsAbs, equal_nan=False):
+                M = np.array([[1, 0, 0], [0, -1, 0], [1, 0, 1]], dtype=np.float64)
+                row = 2
+                return 4, row, M
+            if SofVec[1, 0] > 0:
+                M = np.identity(3, dtype=np.float64)
+                row = 1
+                return 4, row, M
 
         raise RuntimeError("Uncomparable case for category 1 and 4")
-    #category 2
-    if not np.isclose(np.abs(S0[1,1]),np.abs(S1[1,1]),rtol=epsRel, atol=epsAbs, equal_nan=False):
-        if SofVec[1,0]>0:
-            M=np.identity(3,dtype=np.float64)
-            row=1
-            return 2,row,M
-        if SofVec[1,0]<0:
-            M=np.array([[1,1,0],[0,1,0],[0,0,-1]],dtype=np.float64)
-            row=2
+    # category 2
+    if not np.isclose(np.abs(S0[1, 1]), np.abs(S1[1, 1]), rtol=epsRel, atol=epsAbs, equal_nan=False):
+        if SofVec[1, 0] > 0:
+            M = np.identity(3, dtype=np.float64)
+            row = 1
+            return 2, row, M
+        if SofVec[1, 0] < 0:
+            M = np.array([[1, 1, 0], [0, 1, 0], [0, 0, -1]], dtype=np.float64)
+            row = 2
             return 2, row, M
 
-    #category 6,7,8
-    #category 6
-    minAbs,maxAbs=sorted(np.abs([S0[1,0],S1[1,0]]))
-    if np.isclose(maxAbs/minAbs,2,rtol=epsRel, atol=epsAbs, equal_nan=False):
-        category=6
-        if SofVec[1,0]>0:
-            row=1
-            M = np.identity(3, dtype=np.float64)
-            return category,row,M
-        elif SofVec[1,0]<0:
-            row=2
-            M=np.array([[1,0,0],[0,-1,0],[1,0,1]],dtype=np.float64)
-            return category, row, M
-        else:
-            raise RuntimeError("Results not found for category 6.")
-    elif maxAbs/minAbs<2:
-        category =7
-        if SofVec[1,0]>0:
-            row=1
-            M = np.identity(3, dtype=np.float64)
-            return category, row, M
-        elif SofVec[1,0]<0:
-            row=2
-            M=np.array([[1,0,0],[0,-1,0],[1,0,1]],dtype=np.float64)
-            return category, row, M
-        else:
-            raise RuntimeError("Results not found for category 7.")
-    elif maxAbs/minAbs>2:
-        category = 8
-        if SofVec[1,0]>0:
-            row=1
+    # category 6,7,8
+    # category 6
+    minAbs, maxAbs = sorted(np.abs([S0[1, 0], S1[1, 0]]))
+    if np.isclose(maxAbs / minAbs, 2, rtol=epsRel, atol=epsAbs, equal_nan=False):
+        category = 6
+        if SofVec[1, 0] > 0:
+            row = 1
             M = np.identity(3, dtype=np.float64)
             return category, row, M
         elif SofVec[1, 0] < 0:
-            row=2
-            M=np.array([[1,0,0],[0,-1,0],[1,0,1]],dtype=np.float64)
+            row = 2
+            M = np.array([[1, 0, 0], [0, -1, 0], [1, 0, 1]], dtype=np.float64)
+            return category, row, M
+        else:
+            raise RuntimeError("Results not found for category 6.")
+    elif maxAbs / minAbs < 2:
+        category = 7
+        if SofVec[1, 0] > 0:
+            row = 1
+            M = np.identity(3, dtype=np.float64)
+            return category, row, M
+        elif SofVec[1, 0] < 0:
+            row = 2
+            M = np.array([[1, 0, 0], [0, -1, 0], [1, 0, 1]], dtype=np.float64)
+            return category, row, M
+        else:
+            raise RuntimeError("Results not found for category 7.")
+    elif maxAbs / minAbs > 2:
+        category = 8
+        if SofVec[1, 0] > 0:
+            row = 1
+            M = np.identity(3, dtype=np.float64)
+            return category, row, M
+        elif SofVec[1, 0] < 0:
+            row = 2
+            M = np.array([[1, 0, 0], [0, -1, 0], [1, 0, 1]], dtype=np.float64)
             return category, row, M
         else:
             raise RuntimeError("Results not found for category 8.")
 
     raise ValueError("Buerger matrices for partition [1,2,4,6,7,8] is wrong.")
 
-def chooseLen2Partition2Matrix(SofVec,normalizedBgChars,ptn):
+
+def chooseLen2Partition2Matrix(SofVec, normalizedBgChars, ptn):
     """
     len(normalizedBgChars)==2
     :param SofVec:
@@ -2237,21 +2241,21 @@ def chooseLen2Partition2Matrix(SofVec,normalizedBgChars,ptn):
     epsAbs = 1e-6
     if ptn != [5]:
         raise ValueError("Wrong partition type for [5].")
-    category=5
-    SMin,SMax=sorted(normalizedBgChars,key=lambda mat: mat[1,0])
-    if np.isclose(SofVec[1,0],SMin[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=2
-        M=np.array([[1,0,0],[0,1,0],[1,0,-1]],dtype=np.float64)
-        return category,row,M
-    elif np.isclose(SofVec[1,0],SMax[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=1
+    category = 5
+    SMin, SMax = sorted(normalizedBgChars, key=lambda mat: mat[1, 0])
+    if np.isclose(SofVec[1, 0], SMin[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 2
+        M = np.array([[1, 0, 0], [0, 1, 0], [1, 0, -1]], dtype=np.float64)
+        return category, row, M
+    elif np.isclose(SofVec[1, 0], SMax[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 1
         M = np.identity(3, dtype=np.float64)
         return category, row, M
     else:
         raise RuntimeError("Category 5 results not found.")
 
 
-def chooseLen2Partition3Matrix(SofVec,normalizedBgChars,ptn):
+def chooseLen2Partition3Matrix(SofVec, normalizedBgChars, ptn):
     """
     len(normalizedBgChars)==2
     :param SofVec:
@@ -2261,66 +2265,65 @@ def chooseLen2Partition3Matrix(SofVec,normalizedBgChars,ptn):
     """
     epsRel = 1e-8
     epsAbs = 1e-6
-    if ptn != [1,10,12,14,15]:
+    if ptn != [1, 10, 12, 14, 15]:
         raise ValueError("Wrong partition type for [1,10,12,14,15].")
     S0, S1 = normalizedBgChars
-    #category 15
-    if not np.isclose(np.abs(S0[1,2]),np.abs(S1[1,2]),rtol=epsRel, atol=epsAbs, equal_nan=False):
-        category=15
-        if SofVec[1,0]>0:
-            row=1
-            M= np.identity(3, dtype=np.float64)
-            return category,row,M
-        elif SofVec[1,0]<0:
-            row=2
-            M=np.array([[1,0,0],[0,-1,-1],[0,0,-1]],dtype=np.float64)
+    # category 15
+    if not np.isclose(np.abs(S0[1, 2]), np.abs(S1[1, 2]), rtol=epsRel, atol=epsAbs, equal_nan=False):
+        category = 15
+        if SofVec[1, 0] > 0:
+            row = 1
+            M = np.identity(3, dtype=np.float64)
+            return category, row, M
+        elif SofVec[1, 0] < 0:
+            row = 2
+            M = np.array([[1, 0, 0], [0, -1, -1], [0, 0, -1]], dtype=np.float64)
             return category, row, M
         else:
             raise RuntimeError("Results not found for category 15.")
     # category 1
-    if np.isclose(S0[1,0],0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
-        or np.isclose(S1[1,0],0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+    if np.isclose(S0[1, 0], 0, rtol=epsRel, atol=epsAbs, equal_nan=False) \
+            or np.isclose(S1[1, 0], 0, rtol=epsRel, atol=epsAbs, equal_nan=False):
         category = 1
-        if SofVec[1,2]>0:
-            row=1
+        if SofVec[1, 2] > 0:
+            row = 1
             M = np.identity(3, dtype=np.float64)
             return category, row, M
-        elif SofVec[1,2]<0:
-            row=2
-            M=np.array([[1,0,0],[1,1,0],[0,0,-1]],dtype=np.float64)
+        elif SofVec[1, 2] < 0:
+            row = 2
+            M = np.array([[1, 0, 0], [1, 1, 0], [0, 0, -1]], dtype=np.float64)
             return category, row, M
         else:
             raise RuntimeError("Results not found for category 1 when A<B=C.")
     # category 14
-    if np.isclose(S0[1,1],0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
-        or np.isclose(S1[1,1],0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+    if np.isclose(S0[1, 1], 0, rtol=epsRel, atol=epsAbs, equal_nan=False) \
+            or np.isclose(S1[1, 1], 0, rtol=epsRel, atol=epsAbs, equal_nan=False):
         category = 14
-        if SofVec[1,0]>0:
-            row=1
+        if SofVec[1, 0] > 0:
+            row = 1
             M = np.identity(3, dtype=np.float64)
             return category, row, M
-        elif SofVec[1,0]<0:
-            row=2
-            M=np.array([[1,0,0],[0,-1,0],[0,-1,-1]],dtype=np.float64)
+        elif SofVec[1, 0] < 0:
+            row = 2
+            M = np.array([[1, 0, 0], [0, -1, 0], [0, -1, -1]], dtype=np.float64)
             return category, row, M
         else:
             raise RuntimeError("Results not found for category 14 when A<B=C.")
-    #category 10,12, they have common transformation matrices, no further distinction is needed
-    category=12
-    if SofVec[1,2]>0:
-        row=1
+    # category 10,12, they have common transformation matrices, no further distinction is needed
+    category = 12
+    if SofVec[1, 2] > 0:
+        row = 1
         M = np.identity(3, dtype=np.float64)
         return category, row, M
-    elif SofVec[1,2]<0:
-        row=2
-        M=np.array([[1,0,0],[1,1,0],[0,0,-1]],dtype=np.float64)
+    elif SofVec[1, 2] < 0:
+        row = 2
+        M = np.array([[1, 0, 0], [1, 1, 0], [0, 0, -1]], dtype=np.float64)
         return category, row, M
 
     raise RuntimeError("Results not found for partition [1,10,12,14,15].")
 
 
-
-def chooseLen2Partition4Matrix(SofVec,normalizedBgChars,ptn):
+def chooseLen2Partition4Matrix(SofVec, normalizedBgChars, ptn):
     """
     len(normalizedBgChars)==2
     :param SofVec:
@@ -2330,22 +2333,22 @@ def chooseLen2Partition4Matrix(SofVec,normalizedBgChars,ptn):
     """
     epsRel = 1e-8
     epsAbs = 1e-6
-    category=9
+    category = 9
     if ptn != [9]:
         raise ValueError("Wrong partition type for [9].")
-    SMin,SMax=sorted(normalizedBgChars,key=lambda mat:mat[1,0])
-    if np.isclose(SofVec[1,0],SMin[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=2
-        M=np.array([[1,0,0],[1,-1,0],[0,0,1]],dtype=np.float64)
+    SMin, SMax = sorted(normalizedBgChars, key=lambda mat: mat[1, 0])
+    if np.isclose(SofVec[1, 0], SMin[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 2
+        M = np.array([[1, 0, 0], [1, -1, 0], [0, 0, 1]], dtype=np.float64)
         return category, row, M
-    if np.isclose(SofVec[1,0],SMax[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=1
+    if np.isclose(SofVec[1, 0], SMax[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 1
         M = np.identity(3, dtype=np.float64)
         return category, row, M
     raise RuntimeError("Results not found for partition [9].")
 
 
-def chooseLen2Partition5Matrix(SofVec,normalizedBgChars,ptn):
+def chooseLen2Partition5Matrix(SofVec, normalizedBgChars, ptn):
     """
     len(normalizedBgChars)==2
     :param SofVec:
@@ -2355,33 +2358,33 @@ def chooseLen2Partition5Matrix(SofVec,normalizedBgChars,ptn):
     """
     epsRel = 1e-8
     epsAbs = 1e-6
-    if ptn != [16,17]:
+    if ptn != [16, 17]:
         raise ValueError("Wrong partition type for [16,17].")
-    #sort by the value of eta
-    SEtaMin,SEtaMax=sorted(normalizedBgChars,key=lambda mat:mat[1,1])
-    if np.isclose(SEtaMin[1,2],SEtaMax[1,2],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        category=16
-        if np.isclose(SofVec[1,1],SEtaMin[1,1],rtol=epsRel, atol=epsAbs, equal_nan=False):
-            row=1
+    # sort by the value of eta
+    SEtaMin, SEtaMax = sorted(normalizedBgChars, key=lambda mat: mat[1, 1])
+    if np.isclose(SEtaMin[1, 2], SEtaMax[1, 2], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        category = 16
+        if np.isclose(SofVec[1, 1], SEtaMin[1, 1], rtol=epsRel, atol=epsAbs, equal_nan=False):
+            row = 1
             M = np.identity(3, dtype=np.float64)
             return category, row, M
-        elif np.isclose(SofVec[1,1],SEtaMax[1,1],rtol=epsRel, atol=epsAbs, equal_nan=False):
-            row=2
-            M=np.array([[1,0,0],[0,1,0],[-1,-1,-1]],dtype=np.float64)
+        elif np.isclose(SofVec[1, 1], SEtaMax[1, 1], rtol=epsRel, atol=epsAbs, equal_nan=False):
+            row = 2
+            M = np.array([[1, 0, 0], [0, 1, 0], [-1, -1, -1]], dtype=np.float64)
             return category, row, M
         else:
             raise RuntimeError("Results not found for category 16 when A<B=C.")
-    #sort by the value of zeta
-    SZetaMin,SZetaMax=sorted(normalizedBgChars,key=lambda mat: mat[1,2])
-    if np.isclose(SZetaMin[1,1],SZetaMax[1,1],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        category=17
-        if np.isclose(SofVec[1,2],SZetaMin[1,2],rtol=epsRel, atol=epsAbs, equal_nan=False):
-            row=1
+    # sort by the value of zeta
+    SZetaMin, SZetaMax = sorted(normalizedBgChars, key=lambda mat: mat[1, 2])
+    if np.isclose(SZetaMin[1, 1], SZetaMax[1, 1], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        category = 17
+        if np.isclose(SofVec[1, 2], SZetaMin[1, 2], rtol=epsRel, atol=epsAbs, equal_nan=False):
+            row = 1
             M = np.identity(3, dtype=np.float64)
             return category, row, M
-        elif np.isclose(SofVec[1,2],SZetaMax[1,2],rtol=epsRel, atol=epsAbs, equal_nan=False):
-            row=2
-            M=np.array([[1,0,0],[-1,-1,-1],[0,0,1]],dtype=np.float64)
+        elif np.isclose(SofVec[1, 2], SZetaMax[1, 2], rtol=epsRel, atol=epsAbs, equal_nan=False):
+            row = 2
+            M = np.array([[1, 0, 0], [-1, -1, -1], [0, 0, 1]], dtype=np.float64)
             return category, row, M
         else:
             raise RuntimeError("Results not found for category 17 when A<B=C.")
@@ -2389,10 +2392,7 @@ def chooseLen2Partition5Matrix(SofVec,normalizedBgChars,ptn):
     raise RuntimeError("Results not found for partition [16,17].")
 
 
-
-
-
-def chooseLen2Partition6Matrix(SofVec,normalizedBgChars,ptn):
+def chooseLen2Partition6Matrix(SofVec, normalizedBgChars, ptn):
     """
     len(normalizedBgChars)==2
     :param SofVec:
@@ -2402,108 +2402,106 @@ def chooseLen2Partition6Matrix(SofVec,normalizedBgChars,ptn):
     """
     epsRel = 1e-8
     epsAbs = 1e-6
-    if ptn !=[4, 10, 24, 25, 26, 27, 28]:
+    if ptn != [4, 10, 24, 25, 26, 27, 28]:
         raise ValueError("Wrong partition type for [4, 10, 24, 25, 26, 27, 28].")
-    S0,S1=normalizedBgChars
-    #category 4,28, when one xi=0
+    S0, S1 = normalizedBgChars
+    # category 4,28, when one xi=0
 
-    if np.isclose(S0[1,0],0,rtol=epsRel, atol=epsAbs, equal_nan=False)\
-        or np.isclose(S1[1,0],0,rtol=epsRel, atol=epsAbs, equal_nan=False):
+    if np.isclose(S0[1, 0], 0, rtol=epsRel, atol=epsAbs, equal_nan=False) \
+            or np.isclose(S1[1, 0], 0, rtol=epsRel, atol=epsAbs, equal_nan=False):
 
-        SXiMin,SXiMax=sorted(normalizedBgChars,key=lambda mat:mat[1,0])
+        SXiMin, SXiMax = sorted(normalizedBgChars, key=lambda mat: mat[1, 0])
         # when q=A
-        if np.isclose(SXiMax[1,0],SXiMax[1,1],rtol=epsRel, atol=epsAbs, equal_nan=False):
-            if np.isclose(SXiMax[1,1],SXiMax[1,2],rtol=epsRel, atol=epsAbs, equal_nan=False):
-                category=4
-                if np.isclose(SofVec[1,0],SXiMax[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-                    row=1
+        if np.isclose(SXiMax[1, 0], SXiMax[1, 1], rtol=epsRel, atol=epsAbs, equal_nan=False):
+            if np.isclose(SXiMax[1, 1], SXiMax[1, 2], rtol=epsRel, atol=epsAbs, equal_nan=False):
+                category = 4
+                if np.isclose(SofVec[1, 0], SXiMax[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+                    row = 1
                     M = np.identity(3, dtype=np.float64)
                     return category, row, M
-                elif np.isclose(SofVec[1,0],SXiMin[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-                    row=2
-                    M=np.array([[1,0,0],[0,-1,0],[1,0,1]],dtype=np.float64)
+                elif np.isclose(SofVec[1, 0], SXiMin[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+                    row = 2
+                    M = np.array([[1, 0, 0], [0, -1, 0], [1, 0, 1]], dtype=np.float64)
                     return category, row, M
                 else:
                     raise RuntimeError("Results not found for category 4 when q=A<B<C.")
-            if SXiMax[1,1]<SXiMax[1,2]:
-                category=28
-                if np.isclose(SofVec[1,0],SXiMax[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-                    row=1
+            if SXiMax[1, 1] < SXiMax[1, 2]:
+                category = 28
+                if np.isclose(SofVec[1, 0], SXiMax[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+                    row = 1
                     M = np.identity(3, dtype=np.float64)
                     return category, row, M
-                elif np.isclose(SofVec[1,0],SXiMin[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-                    row=2
-                    M=np.array([[1,0,0],[1,1,0],[0,0,-1]],dtype=np.float64)
+                elif np.isclose(SofVec[1, 0], SXiMin[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+                    row = 2
+                    M = np.array([[1, 0, 0], [1, 1, 0], [0, 0, -1]], dtype=np.float64)
                     return category, row, M
                 else:
                     raise RuntimeError("Results not found for category 28 when q=A<B<C.")
         # when q<A
-        elif SXiMax[1,0]<SXiMax[1,1]:
-            category=4
-            if np.isclose(SofVec[1,0],SXiMax[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-                row=1
+        elif SXiMax[1, 0] < SXiMax[1, 1]:
+            category = 4
+            if np.isclose(SofVec[1, 0], SXiMax[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+                row = 1
                 M = np.identity(3, dtype=np.float64)
                 return category, row, M
-            elif np.isclose(SofVec[1,0],SXiMin[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-                row=2
-                M=np.array([[1,0,0],[0,-1,0],[1,0,1]],dtype=np.float64)
+            elif np.isclose(SofVec[1, 0], SXiMin[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+                row = 2
+                M = np.array([[1, 0, 0], [0, -1, 0], [1, 0, 1]], dtype=np.float64)
                 return category, row, M
             else:
                 raise RuntimeError("Results not found for category 4 when q<A<B<C.")
         else:
             raise RuntimeError("Results not found for category 4,28, one  xi =0.")
 
-    #category 10,24,25,26,27,28, no xi=0
+    # category 10,24,25,26,27,28, no xi=0
 
-    SZetaMin,SZetaMax=sorted(normalizedBgChars,key=lambda mat:mat[1,2])
+    SZetaMin, SZetaMax = sorted(normalizedBgChars, key=lambda mat: mat[1, 2])
     # category 10,24,28
-    if SZetaMax[1,1]<SZetaMax[1,2]:
-        #transformation matrices are the same for category 10,24,28
-        category=10
-        if np.isclose(SofVec[1,2],SZetaMax[1,2],rtol=epsRel, atol=epsAbs, equal_nan=False):
-            row=1
+    if SZetaMax[1, 1] < SZetaMax[1, 2]:
+        # transformation matrices are the same for category 10,24,28
+        category = 10
+        if np.isclose(SofVec[1, 2], SZetaMax[1, 2], rtol=epsRel, atol=epsAbs, equal_nan=False):
+            row = 1
             M = np.identity(3, dtype=np.float64)
             return category, row, M
-        elif np.isclose(SofVec[1,2],SZetaMin[1,2],rtol=epsRel, atol=epsAbs, equal_nan=False):
-            row=2
-            M=np.array([[1,0,0],[1,1,0],[0,0,-1]],dtype=np.float64)
+        elif np.isclose(SofVec[1, 2], SZetaMin[1, 2], rtol=epsRel, atol=epsAbs, equal_nan=False):
+            row = 2
+            M = np.array([[1, 0, 0], [1, 1, 0], [0, 0, -1]], dtype=np.float64)
             return category, row, M
         else:
             raise RuntimeError("Results not found for category 10,24,28.")
-    #category 25,26,27
+    # category 25,26,27
     else:
-        sumOfXi=SZetaMax[1,0]+SZetaMin[1,0]
-        #category 25
-        if np.isclose(sumOfXi,0,rtol=epsRel, atol=epsAbs, equal_nan=False):
-            category=25
-            if np.isclose(SofVec[1,0],SZetaMax[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-                row=1
-                M = np.identity(3, dtype=np.float64)
-                return category, row, M
-            elif np.isclose(SofVec[1,0],SZetaMin[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-                row=2
-                M=np.array([[1,0,0],[0,-1,0],[0,-1,-1]],dtype=np.float64)
-                return category, row, M
-            else:
-                raise RuntimeError("Results not found for category 25.")
-        #category 26,27, no further distinction is needed
-        elif sumOfXi>0:
-            category=26
-            if np.isclose(SofVec[1,1],SZetaMax[1,1],rtol=epsRel, atol=epsAbs, equal_nan=False):
+        sumOfXi = SZetaMax[1, 0] + SZetaMin[1, 0]
+        # category 25
+        if np.isclose(sumOfXi, 0, rtol=epsRel, atol=epsAbs, equal_nan=False):
+            category = 25
+            if np.isclose(SofVec[1, 0], SZetaMax[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
                 row = 1
                 M = np.identity(3, dtype=np.float64)
                 return category, row, M
-            elif np.isclose(SofVec[1,1],SZetaMin[1,1],rtol=epsRel, atol=epsAbs, equal_nan=False):
-                row=2
-                M=np.array([[1,0,0],[0,-1,0],[1,0,1]],dtype=np.float64)
+            elif np.isclose(SofVec[1, 0], SZetaMin[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+                row = 2
+                M = np.array([[1, 0, 0], [0, -1, 0], [0, -1, -1]], dtype=np.float64)
+                return category, row, M
+            else:
+                raise RuntimeError("Results not found for category 25.")
+        # category 26,27, no further distinction is needed
+        elif sumOfXi > 0:
+            category = 26
+            if np.isclose(SofVec[1, 1], SZetaMax[1, 1], rtol=epsRel, atol=epsAbs, equal_nan=False):
+                row = 1
+                M = np.identity(3, dtype=np.float64)
+                return category, row, M
+            elif np.isclose(SofVec[1, 1], SZetaMin[1, 1], rtol=epsRel, atol=epsAbs, equal_nan=False):
+                row = 2
+                M = np.array([[1, 0, 0], [0, -1, 0], [1, 0, 1]], dtype=np.float64)
                 return category, row, M
         else:
             raise RuntimeError("Results not found for category 25,26,27.")
 
 
-
-
-def chooseLen2Partition7Matrix(SofVec,normalizedBgChars,ptn):
+def chooseLen2Partition7Matrix(SofVec, normalizedBgChars, ptn):
     """
     len(normalizedBgChars)==2
     :param SofVec:
@@ -2513,54 +2511,53 @@ def chooseLen2Partition7Matrix(SofVec,normalizedBgChars,ptn):
     """
     epsRel = 1e-8
     epsAbs = 1e-6
-    if ptn !=[5,9,21]:
+    if ptn != [5, 9, 21]:
         raise ValueError("Wrong partition type for [5,9,21].")
-    SXiMin,SXiMax=sorted(normalizedBgChars,key=lambda mat:mat[1,0])
-    #category 21
-    if np.isclose(SXiMin[1,0],SXiMax[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        category=21
-        SEtaMin,SEtaMax=sorted(normalizedBgChars,key=lambda mat:mat[1,1])
-        if np.isclose(SofVec[1,1],SEtaMax[1,1],rtol=epsRel, atol=epsAbs, equal_nan=False):
+    SXiMin, SXiMax = sorted(normalizedBgChars, key=lambda mat: mat[1, 0])
+    # category 21
+    if np.isclose(SXiMin[1, 0], SXiMax[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        category = 21
+        SEtaMin, SEtaMax = sorted(normalizedBgChars, key=lambda mat: mat[1, 1])
+        if np.isclose(SofVec[1, 1], SEtaMax[1, 1], rtol=epsRel, atol=epsAbs, equal_nan=False):
             row = 1
             M = np.identity(3, dtype=np.float64)
             return category, row, M
-        elif np.isclose(SofVec[1,1],SEtaMin[1,1],rtol=epsRel, atol=epsAbs, equal_nan=False):
-            row=2
-            M=np.array([[1,0,0],[0,1,0],[0,1,-1]],dtype=np.float64)
+        elif np.isclose(SofVec[1, 1], SEtaMin[1, 1], rtol=epsRel, atol=epsAbs, equal_nan=False):
+            row = 2
+            M = np.array([[1, 0, 0], [0, 1, 0], [0, 1, -1]], dtype=np.float64)
             return category, row, M
         else:
             raise RuntimeError("Results not found for category 21.")
 
-    #category 9
-    if SXiMax[1,1]<SXiMax[1,2]:
-        category=9
-        if np.isclose(SofVec[1,0],SXiMax[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
+    # category 9
+    if SXiMax[1, 1] < SXiMax[1, 2]:
+        category = 9
+        if np.isclose(SofVec[1, 0], SXiMax[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
             row = 1
             M = np.identity(3, dtype=np.float64)
             return category, row, M
-        elif np.isclose(SofVec[1,0],SXiMin[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-            row=2
-            M=np.array([[1,0,0],[1,-1,0],[0,0,1]],dtype=np.float64)
+        elif np.isclose(SofVec[1, 0], SXiMin[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+            row = 2
+            M = np.array([[1, 0, 0], [1, -1, 0], [0, 0, 1]], dtype=np.float64)
             return category, row, M
         else:
             raise RuntimeError("Results not found for category 9.")
 
-    #category 5
-    category=5
-    if np.isclose(SofVec[1,0],SXiMax[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
+    # category 5
+    category = 5
+    if np.isclose(SofVec[1, 0], SXiMax[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
         row = 1
         M = np.identity(3, dtype=np.float64)
         return category, row, M
-    elif np.isclose(SofVec[1,0],SXiMin[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=2
-        M=np.array([[1,0,0],[0,1,0],[1,0,-1]],dtype=np.float64)
+    elif np.isclose(SofVec[1, 0], SXiMin[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 2
+        M = np.array([[1, 0, 0], [0, 1, 0], [1, 0, -1]], dtype=np.float64)
         return category, row, M
     else:
         raise RuntimeError("Results not found for category 5.")
 
 
-
-def chooseLen2Partition8Matrix(SofVec,normalizedBgChars,ptn):
+def chooseLen2Partition8Matrix(SofVec, normalizedBgChars, ptn):
     """
     len(normalizedBgChars)==2
     :param SofVec:
@@ -2570,34 +2567,21 @@ def chooseLen2Partition8Matrix(SofVec,normalizedBgChars,ptn):
     """
     epsRel = 1e-8
     epsAbs = 1e-6
-    if ptn !=[22]:
+    if ptn != [22]:
         raise ValueError("Wrong partition type for [22].")
-    category=22
-    SXiMin,SXiMax=sorted(normalizedBgChars,key=lambda mat:mat[1,0])
+    category = 22
+    SXiMin, SXiMax = sorted(normalizedBgChars, key=lambda mat: mat[1, 0])
 
-    if np.isclose(SofVec[1,0],SXiMax[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
+    if np.isclose(SofVec[1, 0], SXiMax[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
         row = 1
         M = np.identity(3, dtype=np.float64)
         return category, row, M
-    elif np.isclose(SofVec[1,0],SXiMin[1,0],rtol=epsRel, atol=epsAbs, equal_nan=False):
-        row=2
-        M=np.array([[1,0,0],[0,1,0],[-1,-1,-1]],dtype=np.float64)
+    elif np.isclose(SofVec[1, 0], SXiMin[1, 0], rtol=epsRel, atol=epsAbs, equal_nan=False):
+        row = 2
+        M = np.array([[1, 0, 0], [0, 1, 0], [-1, -1, -1]], dtype=np.float64)
         return category, row, M
     else:
         raise RuntimeError("Results not found for category 22.")
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def Buerger2NiggliBasis(SofVec, normalizedBgChars):
@@ -2613,64 +2597,63 @@ def Buerger2NiggliBasis(SofVec, normalizedBgChars):
     # if there are 5 Buerger cells, they belong to category 20
     if len(normalizedBgChars) == 5:
         category, row, M = chooseLen5Matrix(SofVec, normalizedBgChars)
-        return [M,[category,row]]
+        return [M, [category, row]]
 
     # if there are 4 Buerger cells, they belong to category 23
-    if len(normalizedBgChars)==4:
+    if len(normalizedBgChars) == 4:
         category, row, M = chooseLen4Matrix(SofVec, normalizedBgChars)
         return [M, [category, row]]
-    #if there are 3 Buerger cells
-    if len(normalizedBgChars)==3:
-        category=selectLen3(normalizedBgChars)
-        if category==3:
-            row,M=chooseLen3Category3Matrix(SofVec, normalizedBgChars)
-            return [M,[category,row]]
-        if category==11:
-            row,M=chooseLen3Category11Matrix(SofVec, normalizedBgChars)
+    # if there are 3 Buerger cells
+    if len(normalizedBgChars) == 3:
+        category = selectLen3(normalizedBgChars)
+        if category == 3:
+            row, M = chooseLen3Category3Matrix(SofVec, normalizedBgChars)
             return [M, [category, row]]
-        if category==19:
+        if category == 11:
+            row, M = chooseLen3Category11Matrix(SofVec, normalizedBgChars)
+            return [M, [category, row]]
+        if category == 19:
             row, M = chooseLen3Category19Matrix(SofVec, normalizedBgChars)
             return [M, [category, row]]
-        if category==18:
+        if category == 18:
             row, M = chooseLen3Category18Matrix(SofVec, normalizedBgChars)
             return [M, [category, row]]
-        if category==13:
+        if category == 13:
             row, M = chooseLen3Category13Matrix(SofVec, normalizedBgChars)
             return [M, [category, row]]
 
-    #if there are 2 Buerger cells
-    if len(normalizedBgChars)==2:
-        partitionList=partitionLen2(normalizedBgChars)
-        if partitionList==[1,2,4,6,7,8]:
-            category,row,M=chooseLen2Partition1Matrix(SofVec,normalizedBgChars,partitionList)
-            return [M,[category,row]]
-        if partitionList==[5]:
-            category,row,M=chooseLen2Partition2Matrix(SofVec,normalizedBgChars,partitionList)
+    # if there are 2 Buerger cells
+    if len(normalizedBgChars) == 2:
+        partitionList = partitionLen2(normalizedBgChars)
+        if partitionList == [1, 2, 4, 6, 7, 8]:
+            category, row, M = chooseLen2Partition1Matrix(SofVec, normalizedBgChars, partitionList)
             return [M, [category, row]]
-        if partitionList==[1,10,12,14,15]:
-            category, row, M=chooseLen2Partition3Matrix(SofVec,normalizedBgChars,partitionList)
+        if partitionList == [5]:
+            category, row, M = chooseLen2Partition2Matrix(SofVec, normalizedBgChars, partitionList)
             return [M, [category, row]]
-        if partitionList==[9]:
-            category, row, M = chooseLen2Partition4Matrix(SofVec,normalizedBgChars,partitionList)
+        if partitionList == [1, 10, 12, 14, 15]:
+            category, row, M = chooseLen2Partition3Matrix(SofVec, normalizedBgChars, partitionList)
             return [M, [category, row]]
-        if partitionList==[16,17]:
-            category, row, M = chooseLen2Partition5Matrix(SofVec,normalizedBgChars,partitionList)
+        if partitionList == [9]:
+            category, row, M = chooseLen2Partition4Matrix(SofVec, normalizedBgChars, partitionList)
             return [M, [category, row]]
-        if partitionList==[4, 10, 24, 25, 26, 27, 28]:
-            category, row, M = chooseLen2Partition6Matrix(SofVec,normalizedBgChars,partitionList)
+        if partitionList == [16, 17]:
+            category, row, M = chooseLen2Partition5Matrix(SofVec, normalizedBgChars, partitionList)
             return [M, [category, row]]
-        if partitionList==[5,9,21]:
-            category, row, M = chooseLen2Partition7Matrix(SofVec,normalizedBgChars,partitionList)
+        if partitionList == [4, 10, 24, 25, 26, 27, 28]:
+            category, row, M = chooseLen2Partition6Matrix(SofVec, normalizedBgChars, partitionList)
             return [M, [category, row]]
-        if partitionList==[22]:
-            category, row, M = chooseLen2Partition8Matrix(SofVec,normalizedBgChars,partitionList)
+        if partitionList == [5, 9, 21]:
+            category, row, M = chooseLen2Partition7Matrix(SofVec, normalizedBgChars, partitionList)
+            return [M, [category, row]]
+        if partitionList == [22]:
+            category, row, M = chooseLen2Partition8Matrix(SofVec, normalizedBgChars, partitionList)
             return [M, [category, row]]
 
-    raise  RuntimeError("Invalid number of Buerger matrices: "+str(len(normalizedBgChars)))
+    raise RuntimeError("Invalid number of Buerger matrices: " + str(len(normalizedBgChars)))
 
 
-
-def basisBuerger2Niggli(MB2N,aVecOfB, bVecOfB, cVecOfB):
+def basisBuerger2Niggli(MB2N, aVecOfB, bVecOfB, cVecOfB):
     """
 
     :param MB2N: Tranformation matrix M from Buerger basis to Niggli basis
@@ -2680,18 +2663,31 @@ def basisBuerger2Niggli(MB2N,aVecOfB, bVecOfB, cVecOfB):
     :return:
     """
 
-    [[M00,M01,M02],[M10,M11,M12],[M20,M21,M22]]=MB2N
+    [[M00, M01, M02], [M10, M11, M12], [M20, M21, M22]] = MB2N
 
-    aVecOfN=M00*aVecOfB+M01*bVecOfB+M02*cVecOfB
-    bVecOfN=M10*aVecOfB+M11*bVecOfB+M12*cVecOfB
-    cVecOfN=M20*aVecOfB+M21*bVecOfB+M22*cVecOfB
+    aVecOfN = M00 * aVecOfB + M01 * bVecOfB + M02 * cVecOfB
+    bVecOfN = M10 * aVecOfB + M11 * bVecOfB + M12 * cVecOfB
+    cVecOfN = M20 * aVecOfB + M21 * bVecOfB + M22 * cVecOfB
 
-    return aVecOfN,bVecOfN,cVecOfN
-
-
+    return aVecOfN, bVecOfN, cVecOfN
 
 
+def transformationOfVector(M, a, b, c):
+    """
 
+    :param M: transformation matrix
+    :param a: a vector
+    :param b: b vector
+    :param c: c vector
+    :return: vectors trasnformed by M
+    """
+    [[M00, M01, M02], [M10, M11, M12], [M20, M21, M22]] = M
+
+    aVec = M00 * a + M01 * b + M02 * c
+    bVec = M10 * a + M11 * b + M12 * c
+    cVec = M20 * a + M21 * b + M22 * c
+
+    return aVec, bVec, cVec
 
 
 def prim2convWithBasis(aVec, bVec, cVec):
@@ -2709,19 +2705,24 @@ def prim2convWithBasis(aVec, bVec, cVec):
 
     SofVec = vec2S(aVecOfB, bVecOfB, cVecOfB)  # basis for one Buerger cell
 
-
     # find all Buerger cells
     normalizedBgChars = allNormalizedBuergerCharacteristics(SofVec)
-    MCategoryRow=Buerger2NiggliBasis(SofVec, normalizedBgChars)
-    MBuerger2Niggli=MCategoryRow[0]
+    MCategoryRow = Buerger2NiggliBasis(SofVec, normalizedBgChars)
+    MBuerger2Niggli = MCategoryRow[0]
     # MBuerger2Niggli=np.array([[1,1,0],[1,0,0],[0,0,-1]],dtype=np.float64)
-    aVecOfN,bVecOfN,cVecOfN=basisBuerger2Niggli(MBuerger2Niggli,aVecOfB,bVecOfB,cVecOfB)
-    #testing
-    SofN=vec2S(aVecOfN,bVecOfN,cVecOfN)
+    aVecOfN, bVecOfN, cVecOfN = basisBuerger2Niggli(MBuerger2Niggli, aVecOfB, bVecOfB, cVecOfB)
+    # TODO: testing
+    SofN = vec2S(aVecOfN, bVecOfN, cVecOfN)
     checkAnglesOfS(SofN)
     checkNiggliCell(SofN)
     # Niggli cell to conventional cell (angle in degrees)
     convParamsAndInfo = getConventionalInDegree(SofN)
+    aVecOfC, bVecOfC, cVecOfC = transformationOfVector(convParamsAndInfo["Transformation matrix"], aVecOfN, bVecOfN,
+                                                       cVecOfN)
+    convParamsAndInfo["Basis a"] = aVecOfC
+    convParamsAndInfo["Basis b"] = bVecOfC
+    convParamsAndInfo["Basis c"] = cVecOfC
+
     return convParamsAndInfo
 
 # test data for aP #S passed, basis passed
@@ -2864,20 +2865,20 @@ def prim2convWithBasis(aVec, bVec, cVec):
 # prim2convWithBasis(a,b,c)
 
 ####to input S matrix
-aLen=np.linalg.norm(a,ord=2)
-bLen=np.linalg.norm(b,ord=2)
-cLen=np.linalg.norm(c,ord=2)
+# aLen=np.linalg.norm(a,ord=2)
+# bLen=np.linalg.norm(b,ord=2)
+# cLen=np.linalg.norm(c,ord=2)
 # print("original lenths are: "+str(aLen)+", "+str(bLen)+", "+str(cLen))
-alpha=np.arccos(c.dot(b)/(cLen*bLen))*180/np.pi
-beta=np.arccos(a.dot(c)/(aLen*cLen))*180/np.pi
-gamma=np.arccos(a.dot(b)/(aLen*bLen))*180/np.pi
+# alpha=np.arccos(c.dot(b)/(cLen*bLen))*180/np.pi
+# beta=np.arccos(a.dot(c)/(aLen*cLen))*180/np.pi
+# gamma=np.arccos(a.dot(b)/(aLen*bLen))*180/np.pi
 #
-rstS=prim2convWithS(aLen,bLen,cLen,alpha,beta,gamma)
-
-rstBasis=prim2convWithBasis(a,b,c)
-
-print("S: "+str(rstS))
-
-print("==================")
-
-print("Basis: "+str(rstBasis))
+# rstS=prim2convWithS(aLen,bLen,cLen,alpha,beta,gamma)
+# #
+# rstBasis=prim2convWithBasis(a,b,c)
+#
+# print("S: "+str(rstS))
+#
+# print("==================")
+#
+# print("Basis: "+str(rstBasis))

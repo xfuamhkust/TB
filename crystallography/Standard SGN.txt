@@ -1,0 +1,5 @@
+ABO3		221
+NaCl 		225
+Graphene 	191
+h-BN 		187
+Si 		227
