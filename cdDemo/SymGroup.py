@@ -20,19 +20,7 @@ def GetSpaceGroupPrimitive(ParaIn):
                 "AtomOrbital":                AtOrb,
                 "AtomTypeIndex":              AtTypeInd,
                 }
-    For conventional cell:
-     ParaIn = {"Name": Name if Name else "Material",
-                  "Dimension": Dim if Dim else 3,
-                  "Spin": Spn if Spn else 0,
-                  "Lattice type": conventional,
-                  "NeighborNumber": Nbr if Nbr else 1,
-                  "SpaceGroupLatticeVector":    LvSG,
-                  "AtomName": AtName,
-                  "AtomNumber": AtNum,
-                  "AtomSite": AtSite,
-                  "AtomOrbital": AtOrb,
-                  "AtomTypeIndex": AtTypeInd,
-                  }
+
     :return:
     """
     #basis of primitive cell
@@ -47,7 +35,7 @@ def GetSpaceGroupPrimitive(ParaIn):
     brvType=convParamsAndInfo["Bravais type"]
 
     atmIndsPrim=ParaIn["AtomTypeIndex"]
-    atmPosPrim=ParaIn["AtomSite"]#coordinates under #TODO: conventional cell basis not necessarily the same as aVecOfC, bVecOfC, cVecOfC
+    atmPosPrim=ParaIn["AtomSite"]#coordinates under #
     atmIndsConv=[]#coordinates under Cartesian basis
     atmPosConvCartesian=[]#coordinates under Cartesian  basis
 
@@ -66,7 +54,8 @@ def GetSpaceGroupPrimitive(ParaIn):
     for j in range(0,len(atmIndsPrim)):
         posTmp=atmPosPrim[j]
         indTmp=atmIndsPrim[j]
-        pntsInConvTmp=truncatedPointsInConventionalCell(posTmp,aVecOfC,bVecOfC,cVecOfC,brvType)
+        posTmpCartesian=posTmp[0]*aVecOfP+posTmp[1]*bVecOfP+posTmp[2]*cVecOfP
+        pntsInConvTmp=truncatedPointsInConventionalCell(posTmpCartesian,aVecOfC,bVecOfC,cVecOfC,brvType)
         for onePnt in pntsInConvTmp:
             atmIndsConv.append(indTmp)
             atmPosConvCartesian.append(onePnt)

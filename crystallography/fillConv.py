@@ -312,11 +312,11 @@ def removeDuplicatedArrs(arrList):
     return ret
 
 
-def convCellPoints(rfcPosition, a, b, c, BrvType):
+def convCellPoints(rfcPositionCartesian, a, b, c, BrvType):
     """
 
     :param rfcPosition: reference point of the conventional cell where an atom is occupied
-    #TODO: currently rfcPosition is the coordinates under the basis of a permutation of a,b,c. We assume a,b,c is the correct order but this is not guaranteed.
+
     :param a: a vector of conventional cell
     :param b: b vector of conventional cell
     :param c: c vector of conventional cell
@@ -329,9 +329,9 @@ def convCellPoints(rfcPosition, a, b, c, BrvType):
     b = np.array(b)
     c = np.array(c)
 
-    rfcCartesian = rfcPosition[0] * a + rfcPosition[1] * b + rfcPosition[2] * c
+    # rfcCartesian = rfcPosition[0] * a + rfcPosition[1] * b + rfcPosition[2] * c
 
-    V0 = generatingFunc(rfcCartesian, a, b, c)
+    V0 = generatingFunc(rfcPositionCartesian, a, b, c)
     # V1=[vec-a for vec in V0]
     # V2=[vec-b for vec in V0]
     # V3=[vec-a-b for vec in V0]
@@ -363,11 +363,11 @@ def withinRange(a, x, y):
     return rst
 
 
-def truncatedPointsInConventionalCell(atmPosition, a, b, c, BrvType):
+def truncatedPointsInConventionalCell(atmPositionCartesian, a, b, c, BrvType):
     """
 
     :param atmPosition: atom position within the primitive cell
-        #TODO: currently rfcPosition is the coordinates under the basis of a permutation of a,b,c. We assume a,b,c is the correct order but this is not guaranteed.
+
 
     :param a: a vector of conventional cell
     :param b: b vector of conventional cell
@@ -376,7 +376,7 @@ def truncatedPointsInConventionalCell(atmPosition, a, b, c, BrvType):
     :return:  positions (modulo a, b, c) of atmPosition within the conventional cell with reference point rfcPosition
     """
 
-    convAtmPoints = convCellPoints(atmPosition, a, b, c, BrvType)  # under Cartesian coordinates
+    convAtmPoints = convCellPoints(atmPositionCartesian, a, b, c, BrvType)  # under Cartesian coordinates
     # print("conv points:"+str(convAtmPoints))
 
     aLen = np.linalg.norm(a, ord=2)
