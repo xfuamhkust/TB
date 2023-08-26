@@ -66,7 +66,10 @@ def GetSpaceGroupPrimitive(ParaIn):
     # print(atmPosConvCartesian)
     #Cartesian basis to conventional vector basis
     atmUnderConvVector=[basisConvInv@pnt for pnt in atmPosConvCartesian]
-
+    #TODO: check conventional or primitive
+    # basisPrim=np.array([aVecOfP,bVecOfP,cVecOfP],dtype=np.float64)
+    # basisPrimInv=np.linalg.inv(basisPrim)
+    # atmUnderPrimVector=[basisPrimInv@pnt for pnt in atmPosConvCartesian]
     tFindSGNStart = datetime.now()
     SGN, originBilbao=FindSGN(atmUnderConvVector,atmIndsConv)
     tFindSGNEnd = datetime.now()
