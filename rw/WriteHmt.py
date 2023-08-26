@@ -8,16 +8,17 @@ def WriteHamiltonianReal(ParaIn,ParaHmtR):
     HmtRealSpace  = ParaHmtR["HmtRealSpace"]
     HmtMatLv      = ParaHmtR["HmtMatLv"]
     HmtLv         = ParaHmtR["HmtLv"]
+    folderName=ParaIn["Folder"]
     NumLv, NumStt = HmtMatLv[:,:,0].shape
     
     # Write AtOrbInd
-    np.save("data/" + Name + "/AtOrbInd", AtOrbInd)
+    np.save(folderName+ "/AtOrbInd", AtOrbInd)
     
     # Write HmtRealSpace
-    np.save("data/" + Name + "/HmtRealSpace", HmtRealSpace)
+    np.save(folderName+ "/HmtRealSpace", HmtRealSpace)
     
     # Write HmtMatLv & HmtLv
-    np.save("data/" + Name + "/HmtMatLv", HmtMatLv)
-    np.save("data/" + Name + "/HmtLv"   , HmtLv)
+    np.save(folderName + "/HmtMatLv", HmtMatLv)
+    np.save(folderName+ "/HmtLv"   , HmtLv)
     
     

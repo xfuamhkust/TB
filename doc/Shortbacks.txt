@@ -1,0 +1,4 @@
+no symmetry finding
+no spin
+no complex hopping terms
+no 2s 3d 5pz

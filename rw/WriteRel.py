@@ -8,10 +8,11 @@ def WriteRelation(ParaIn,ParaRel):
     Name          = ParaIn["Name"]
     LvAtAtOO      = ParaRel["LvAtAtOO"]
     HopRelAltClas = ParaRel["HopRelAltClas"]
+    folderName=ParaIn["Folder"]
     NumClas = len(HopRelAltClas)
     
     # Write hopping relations
-    NameHopRel = "data/" + Name + "/HopRel.txt"
+    NameHopRel = folderName + "/HopRel.txt"
     f = open(NameHopRel,"w")
     f.write("###HoppingTerms###\n\n")
     for iClas in range(NumClas):
@@ -45,7 +46,7 @@ def WriteRelation(ParaIn,ParaRel):
     f.close()
     
     # Write input instrunction of free hopping terms
-    NameHopFree = "data/" + Name + "/HopFree.txt"
+    NameHopFree = folderName+ "/HopFree.txt"
     f = open(NameHopFree,"w")
     for iClas in range(NumClas):
         FreIndi = HopRelAltClas[iClas][0]

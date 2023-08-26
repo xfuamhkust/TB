@@ -4,6 +4,8 @@ def FindAtomSymmetry(ParaIn,ParaSym,ParaNbr):
     
     # Parameters
     AtLv         = ParaIn["AtomSite"]
+    originBilbao = ParaSym["origin Bilbao"]
+    AtLv = [vec - originBilbao for vec in AtLv]  # shift origin
     SymLv        = ParaSym["SymLv"]
     LvAt         = ParaNbr["LvAt"]
     LvAtAt       = ParaNbr["LvAtAt"]
@@ -98,6 +100,7 @@ def FindAtomSymmetry(ParaIn,ParaSym,ParaNbr):
     # Output
     ParaSymAt = {"SymLvAtAtInd": SymLvAtAtInd,
                  "LvAtAtClas":   LvAtAtClas,
+                 "SymAt0":       SymAt0, # Used in CheckH
                  }
     
     return ParaSymAt

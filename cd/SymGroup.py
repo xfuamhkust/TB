@@ -1,23 +1,104 @@
 import numpy as np
+from crystallography.prim2conv import prim2convWithBasis
+from crystallography.fillConv import truncatedPointsInConventionalCell
+from crystallography.FindSGNNew import  FindSGN
+from datetime import datetime
 
-def GetSpaceGroup(ParaIn):
-    SGN  = ParaIn["SpaceGroupNumber"]
-    LvSG = ParaIn["SpaceGroupLatticeVector"]
-    Lv   = ParaIn["LatticeVector"]
-    SymLvSG   = GetSymLvSG(SGN)
-    SymXyz, SymXyzt = GetSymXyz(SymLvSG,LvSG)
-    SymLv   = GetSymLv(SymXyzt,Lv)
-    SymOrb  = GetSymOrb(SymXyz)
-    SymSpn  = np.array([GetSymSpin(SymXyz[i]) for i in range(len(SymLvSG))],"complex")
+def GetSpaceGroupPrimitive(ParaIn):
+    """
+
+    :param ParaIn: For primitive cell:
+     ParaIn = {"Name":                       Name if Name else "Material",
+                  "Dimension":                  Dim  if Dim  else 3,
+                  "Spin":                       Spn  if Spn  else 0,
+                  "Lattice type":               primitive,
+                "NeighborNumber":             Nbr  if Nbr  else 1,
+                "LatticeVector":              Lv,
+                "AtomName":                   AtName,
+                "AtomNumber":                 AtNum,
+                "AtomSite":                   AtSite,
+                "AtomOrbital":                AtOrb,
+                "AtomTypeIndex":              AtTypeInd,
+                }
+
+    :return:
+    """
+    #basis of primitive cell
+    aVecOfP,bVecOfP,cVecOfP=ParaIn["LatticeVector"]
+    tConvStart = datetime.now()
+    convParamsAndInfo=prim2convWithBasis(aVecOfP,bVecOfP,cVecOfP)#to conventional cell
+    tConvEnd = datetime.now()
+    print("primitive to conventional cell:", tConvEnd - tConvStart)
+    aVecOfC=convParamsAndInfo["Basis a"]
+    bVecOfC = convParamsAndInfo["Basis b"]
+    cVecOfC = convParamsAndInfo["Basis c"]
+    brvType=convParamsAndInfo["Bravais type"]
+
+    atmIndsPrim=ParaIn["AtomTypeIndex"]
+    atmPosPrim=ParaIn["AtomSite"]#coordinates under #
+    atmIndsConv=[]#coordinates under Cartesian basis
+    atmPosConvCartesian=[]#coordinates under Cartesian  basis
+
+
+    # print(aVecOfC)
+    # print(bVecOfC)
+    # print(cVecOfC)
+    # print(brvType)
+    # print(atmIndsPrim)
+    # print(atmPosPrim)
+    if len(atmIndsPrim)!=len(atmPosPrim):
+        raise ValueError("Atom numbers != number of positions.")
+
+    # originGiven=np.array([0,0,0],dtype=np.float64)
+
+    for j in range(0,len(atmIndsPrim)):
+        posTmp=atmPosPrim[j]
+        indTmp=atmIndsPrim[j]
+        posTmpCartesian=posTmp[0]*aVecOfP+posTmp[1]*bVecOfP+posTmp[2]*cVecOfP
+        pntsInConvTmp=truncatedPointsInConventionalCell(posTmpCartesian,aVecOfC,bVecOfC,cVecOfC,brvType)
+        for onePnt in pntsInConvTmp:
+            atmIndsConv.append(indTmp)
+            atmPosConvCartesian.append(onePnt)
+    basisConv=np.array([aVecOfC,bVecOfC,cVecOfC],dtype=np.float64).T
+    basisConvInv=np.linalg.inv(basisConv)
+
+    # print(atmIndsConv)
+    # print(atmPosConvCartesian)
+    #Cartesian basis to conventional vector basis
+    atmUnderConvVector=[basisConvInv@pnt for pnt in atmPosConvCartesian]
+
+    tFindSGNStart = datetime.now()
+    SGN, originBilbao=FindSGN(atmUnderConvVector,atmIndsConv)
+    tFindSGNEnd = datetime.now()
+    print(ParaIn["Name"]+"'s symmetry group number: "+str(SGN)+", time: "+str(tFindSGNEnd - tFindSGNStart))
+    LvSG=np.array([aVecOfC,bVecOfC,cVecOfC],dtype=np.float64)
+    Lv = ParaIn["LatticeVector"]
+    SymLvSG = GetSymLvSG(SGN)  # space group operators under conventional unit cell basis
+    SymXyz, SymXyzt = GetSymXyz(SymLvSG, LvSG)  # space group operators under Cartesian basis
+    SymLv = GetSymLv(SymXyzt, Lv)  # space group operators under primitive cell basis
+    SymOrb = GetSymOrb(SymXyz)  # Atomic orbitals transformed under space group operators
+    SymSpn = np.array([GetSymSpin(SymXyz[i]) for i in range(len(SymLvSG))], "complex")  # to be checked...
     ParaSym = {"SymLvSG": SymLvSG,
-               "SymXyz":  SymXyz,
+               "SymXyz": SymXyz,
                "SymXyzt": SymXyzt,
-               "SymLv":   SymLv,
-               "SymOrb":  SymOrb,
-               "SymSpn":  SymSpn,
+               "SymLv": SymLv,
+               "SymOrb": SymOrb,
+               "SymSpn": SymSpn,
+               "origin Bilbao": originBilbao
                }
-    
+
     return ParaSym
+
+
+
+
+
+# def GetSpaceGroup():
+
+
+
+
+
 
 def GetSymLvSG(SGN):
     FileName = "data/sys/SpGrpMat.txt"
@@ -41,15 +122,27 @@ def GetSymLvSG(SGN):
     return SGM
 
 def GetSymXyz(SymLvSG,LvSG):
+    """
+
+    :param SymLvSG: a tensor holding space group operators under conventional unit cell basis
+    :param LvSG: matrix relating conventional unit cell basis to Cartesian basis
+    :return: space group operators under Cartesian basis
+    """
     LvSGT = LvSG.T; LvSGTI = np.linalg.inv(LvSGT); NumSym = len(SymLvSG)
     SymXyzt = np.zeros((NumSym,3,4))
     for i in range(NumSym):
-        SymXyzt[i,:,:3] = LvSGT @ SymLvSG[i,:,:3] @ LvSGTI
+        SymXyzt[i,:,:3] = LvSGT @ SymLvSG[ i,:,:3] @ LvSGTI
         SymXyzt[i,:, 3] =         SymLvSG[i,:, 3] @ LvSG
     SymXyz  = SymXyzt[:,:,:3]
     return SymXyz, SymXyzt
 
 def GetSymLv(SymXyzt,Lv):
+    """
+
+    :param SymXyzt: space group operator under Cartesian basis
+    :param Lv: primitive unit cell basis
+    :return: space group operator under primitive unit cell basis
+    """
     LvT = Lv.T;LvI = np.linalg.inv(Lv);LvTI = np.linalg.inv(LvT); NumSym = len(SymXyzt)
     SymLv = np.zeros((NumSym,3,4))
     for i in range(NumSym):
@@ -105,6 +198,43 @@ def GetSymD(R):
     RD[4,4] = 1/2*(2*R_33**2-R_31**2-R_32**2 )
     
     return RD.T
+
+
+def GetSymD_LX(R):
+    [[R_00, R_01, R_02], [R_10, R_11, R_12], [R_20, R_21, R_22]] = R
+    RD = np.zeros((5, 5))
+    #
+    RD[0, 0] = R_00 * R_11 + R_10 * R_01
+    RD[0, 1] = R_01 * R_12 + R_11 * R_02
+    RD[0, 2] = R_02 * R_10 + R_12 * R_00
+    RD[0, 3] = 2 * R_00 * R_10 - 2 * R_01 * R_11
+    RD[0, 4] = 6 * R_02 * R_12
+    #
+    RD[1, 0] = R_10 * R_21 + R_20 * R_11
+    RD[1, 1] = R_11 * R_22 + R_21 * R_12
+    RD[1, 2] = R_12 * R_20 + R_22 * R_10
+    RD[1, 3] = 2 * R_10 * R_20 - 2 * R_11 * R_21
+    RD[1, 4] = 6 * R_12 * R_22
+    #
+    RD[2, 0] = R_00 * R_21 + R_20 * R_01
+    RD[2, 1] = R_01 * R_22 + R_21 * R_02
+    RD[2, 2] = R_02 * R_20 + R_22 * R_00
+    RD[2, 3] = 2 * R_00 * R_20 - 2 * R_01 * R_21
+    RD[2, 4] = 6 * R_02 * R_22
+    #
+    RD[3, 0] = 1 / 2 * R_00 * R_01 - 1 / 2 * R_10 * R_11
+    RD[3, 1] = 1 / 2 * R_01 * R_02 - 1 / 2 * R_11 * R_12
+    RD[3, 2] = 1 / 2 * R_02 * R_00 - 1 / 2 * R_12 * R_10
+    RD[3, 3] = 1 / 2 * (R_00 ** 2 - R_01 ** 2 - R_10 ** 2 + R_11 ** 2)
+    RD[3, 4] = 3 / 2 * (R_02 ** 2 - R_12 ** 2)
+    #
+    RD[4, 0] = -1 / 2 * R_00 * R_01 - 1 / 2 * R_10 * R_11
+    RD[4, 1] = -1 / 2 * R_01 * R_02 - 1 / 2 * R_11 * R_12
+    RD[4, 2] = -1 / 2 * R_02 * R_00 - 1 / 2 * R_12 * R_10
+    RD[4, 3] = 1 / 2 * (R_11 ** 2 + R_01 ** 2 - R_00 ** 2 - R_10 ** 2)
+    RD[4, 4] = 3 / 2 * R_22 ** 2 - 1 / 2
+
+    return RD
 
 def GetSymSpin(R,T=0):
     # This part refers to Ziyu's TB code.
@@ -236,7 +366,7 @@ def GetSymD_new(R):
                   [        0,        0,        0,        0,        0,       2], # dyz
                   [        0,        0,        0,        0,        2,       0], # dzx
                   [        1,       -1,        0,        0,        0,       0], # dx2-y2
-                  [   -1/sr3,   -1/sr3,    2/sr3,        0,        0,       0], # dz2
+                  [   -1/sr3,   -1/sr3,      sr3,        0,        0,       0], # dz2
                   ])
     DR = D @ Rx1x2 # 5*6, dxy~dz2, a~f
     # 5*6, dxy~dz2, a~f
@@ -244,9 +374,10 @@ def GetSymD_new(R):
     CD = np.array([[      0,      0,      0,    1/2,      0,      0], # dxy
                    [      0,      0,      0,      0,      0,    1/2], # dyz
                    [      0,      0,      0,      0,    1/2,      0], # dzx
-                   [      1,      0,    1/2,      0,      0,      0], # dx2-y2
-                   [      0,      0,  sr3/2,      0,      0,      0]  # dz2
+                   [      1,      0,    1/3,      0,      0,      0], # dx2-y2
+                   [      0,      0,  sr3/3,      0,      0,      0]  # dz2
                    ]) 
     RD = DR @ CD.T
     
     return RD.T
+    

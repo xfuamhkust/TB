@@ -1,17 +1,33 @@
 import os
 import numpy as np
+import re
+import pathlib
 
-def ReadInput(FileName="data//TBIN.txt"):
-    f = [line.strip() for line in open(FileName,"r").readlines()]
-    Name=CaptInfo("Name",f);Dim=int(CaptInfo("Dim",f));Spn=int(CaptInfo("Spin",f));
-    SGN=int(CaptInfo("SGN",f));NumAtType=int(CaptInfo("AtTpNum",f))
+def ReadInput(FileName):
+    """
+
+    :param FileName: configuration containing the info of the lattice
+    :return: info of lattice
+    """
+    f = [line.strip() for line in open(FileName,"r").readlines()]#TODO: check readin error
+    Name=CaptInfo("Name",f)
+    Dim=int(CaptInfo("Dim",f))
+    Spn=int(CaptInfo("Spin",f))
+    # SGN=int(CaptInfo("SGN",f));
+    NumAtType=int(CaptInfo("AtTpNum",f))
+    LatType=CaptInfo("LatType",f)
+    # print(LatType)
+    if  re.search("[^a-zA-Z]+",LatType) or LatType is None:
+        raise ValueError("Invalid lattice type name.")
+    LatType=LatType.lower()#lattice type
+    # print(LatType)
     Nbr0=CaptInfo("Nbr",f)
     if type(Nbr0) == str:
         n = int(Nbr0); Nbr = [n, n, 0 if Dim == 2 else n]
     else:
         Nbr = [int(Nbr0[0]), int(Nbr0[1]), 0 if Dim == 2 else int(Nbr0[2])]
-    LvSG   = np.array([CaptInfo("LatVecSG",f,3)[i].split() for i in range(3)],float)
-    Lv     = np.array([CaptInfo("LatVec"  ,f,3)[i].split() for i in range(3)],float)
+    # LvSG   = np.array([CaptInfo("LatVecSG",f,3)[i].split() for i in range(3)],float)
+    # Lv     = np.array([CaptInfo("LatVec"  ,f,3)[i].split() for i in range(3)],float)
     Bas    = [CaptInfo("Bases",f,NumRow=NumAtType)[i].split() for i in range(NumAtType)]
     AtName = [Bas[i][0] for i in range(NumAtType)]
     AtNum  = [int(Bas[i][1]) for i in range(NumAtType)]
@@ -24,27 +40,52 @@ def ReadInput(FileName="data//TBIN.txt"):
             AtTypeInd.append(iAt)
     AtTypeInd = np.array(AtTypeInd,"int")
     # Creat a new dictory for this material
-    if (1 - os.path.exists("data/" + Name)):
-        os.mkdir("data/" + Name)
-    ParaIn = {"Name":                       Name if Name else "Material",
-              "Dimension":                  Dim  if Dim  else 3,
-              "Spin":                       Spn  if Spn  else 0,
-              "SpaceGroupNumber":           SGN  if SGN  else 1,
-              "NeighborNumber":             Nbr  if Nbr  else 1,
-              "LatticeVector":              Lv,
-              "SpaceGroupLatticeVector":    LvSG,
-              "AtomName":                   AtName,
-              "AtomNumber":                 AtNum,
-              "AtomSite":                   AtSite,
-              "AtomOrbital":                AtOrb,
-              "AtomTypeIndex":              AtTypeInd,
-              }
-    return ParaIn
+    # if (1 - os.path.exists("data/" + Name)):
+    #     os.mkdir("data/" + Name)
+    inConfigFolder=str(pathlib.Path(FileName).parent)
+    if LatType=="primitive":
+        Lv = np.array([CaptInfo("LatVec", f, 3)[i].split() for i in range(3)], float)
+        ParaIn = {"Name":                       Name if Name else "Material",
+                  "Dimension":                  Dim  if Dim  else 3,
+                  "Spin":                       Spn  if Spn  else 0,
+                  "Lattice type":               LatType,
+                # "SpaceGroupNumber":           SGN  if SGN  else 1,
+                "NeighborNumber":             Nbr  if Nbr  else 1,
+                "LatticeVector":              Lv,
+                # "SpaceGroupLatticeVector":    LvSG,
+                "AtomName":                   AtName,
+                "AtomNumber":                 AtNum,
+                "AtomSite":                   AtSite,
+                "AtomOrbital":                AtOrb,
+                "AtomTypeIndex":              AtTypeInd,
+                  "Folder":                   inConfigFolder
+                }
+        return ParaIn
+    elif LatType=="conventional":
+        LvSG = np.array([CaptInfo("LatVecSG", f, 3)[i].split() for i in range(3)], float)
+        ParaIn = {"Name": Name if Name else "Material",
+                  "Dimension": Dim if Dim else 3,
+                  "Spin": Spn if Spn else 0,
+                  "Lattice type": LatType,
+                  # "SpaceGroupNumber":           SGN  if SGN  else 1,
+                  "NeighborNumber": Nbr if Nbr else 1,
+                  # "LatticeVector": Lv,
+                  "SpaceGroupLatticeVector":    LvSG,
+                  "AtomName": AtName,
+                  "AtomNumber": AtNum,
+                  "AtomSite": AtSite,
+                  "AtomOrbital": AtOrb,
+                  "AtomTypeIndex": AtTypeInd,
+                  "Folder": inConfigFolder
+                  }
+        return ParaIn
+    else:
+        raise ValueError("Wrong lattice name.")
 
 def CaptInfo(Name, FileList, NumRow = 0):
     NumList = len(FileList)
     for iList in range(NumList):
-        FileLine = FileList[iList].split()
+        FileLine = FileList[iList].split()#TODO: more efficient ways of iteration
         if FileLine[0] == Name:
             if NumRow:
                 return FileList[iList+1:iList+1+NumRow]

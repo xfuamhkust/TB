@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 plt.rcParams['figure.dpi']= 300
 
-def PlotEnergyBand(ParaKpt,ParaEig,Name=""):
+def PlotEnergyBand(ParaKpt,ParaEig,folderName=""):
     
     # Parameters
     Method = ParaKpt["Method"]
@@ -24,7 +24,7 @@ def PlotEnergyBand(ParaKpt,ParaEig,Name=""):
         plt.xticks(Kpt0R,Kpt0Name)
         plt.ylabel("Energy")
         plt.xlim([KptR[0],KptR[-1]])
-        plt.savefig("data/" + Name + "/EnergyBand.svg")
+        plt.savefig(folderName+ "/EnergyBand.svg")
         
     # Output
     ParaEigPlt = {"FigureEB": fig,
