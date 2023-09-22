@@ -27,6 +27,8 @@ from rw.WriteHmt import WriteHamiltonianReal
 # Plot
 from pl.PlotEB   import PlotEnergyBand
 from pl.PlotAt   import PlotAtoms
+from pl.PlotHop  import PlotHoppingTerm
+# from pl.PlotBZ  import PlotBrillouinZone
 
 #This is the demo program for Auh-17-2023
 #1. It reads config file containing information of the crystal,
@@ -34,6 +36,16 @@ from pl.PlotAt   import PlotAtoms
 # the program will compute primitive from conventional, or conventional from primitive.
 #2. When the
 
+# material = 'data/ABO3/primitive_TBIN_ABO3.txt'
+material = 'data/Graphene/primitive_TBIN_Graphene.txt'
+# material = 'data/h-BN/primitive_TBIN_h-BN.txt'
+# material = 'data/NaCl/primitive_TBIN_NaCl.txt'
+# material = 'data/Si/primitive_TBIN_Si.txt'
+lenParams=len(sys.argv)
+if lenParams<2:
+    sys.argv.append(material)
+else:
+    sys.argv[1] = material
 
 lenParams=len(sys.argv)
 if lenParams!=2:
@@ -55,13 +67,15 @@ ParaSym = GetSpaceGroupPrimitive(ParaIn)
 ParaIn["origin Bilbao"]=ParaSym["origin Bilbao"]
 ParaNbr    = FindNeighbor(ParaIn)
 Name=ParaIn["Name"]
-# PlotAtoms(ParaNbr,Name)
+# PlotAtoms(ParaIn,ParaNbr,Name)
 tFindingRelationStart=datetime.now()
-ParaSymAt  = FindAtomSymmetry(ParaIn,ParaSym,ParaNbr)
-ParaRel    = FindRelation(ParaIn,ParaSym,ParaNbr,ParaSymAt)
+# ParaSymAt  = FindAtomSymmetry(ParaIn,ParaSym,ParaNbr)
+# ParaRel    = FindRelation(ParaIn,ParaSym,ParaNbr,ParaSymAt)
+ParaRel    = ReadRelation(ParaIn["Folder"]+ "/HopRel.txt")
+# PlotHoppingTerm(ParaIn,ParaNbr,ParaRel,Name,[5,6])
 tFindingRelationEnd=datetime.now()
 print("Finding symmetry relations: ",tFindingRelationEnd-tFindingRelationStart)
-WriteRelation(ParaIn,ParaRel)
+# WriteRelation(ParaIn,ParaRel)
 # From hopping relations to Hamiltonian in real space
 HopValIn   = ReadHopping(ParaIn["Folder"]+"/HopValIN_"+ParaIn["Name"]+".txt")
 ParaRel    = ReadRelation(ParaIn["Folder"]+ "/HopRel.txt")

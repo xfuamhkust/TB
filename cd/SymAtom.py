@@ -45,7 +45,7 @@ def FindAtomSymmetry(ParaIn,ParaSym,ParaNbr):
             On1, On2, On3 = SymLv[iSym,0:3,0:3] @ np.array([n1, n2, n3])
             SymLvAt[iSym,iLvAt] = [On1+dn1, On2+dn2, On3+dn3, OiAt]
     
-    # Symmetry operations acting on neihboring pairs between atoms in 000 and atoms in n1 n2 n3
+    # Symmetry operations acting on neighboring pairs between atoms in 000 and atoms in n1 n2 n3
     SymLvAtAt = np.zeros((NumSym,NumLvAtAt,5),int)
     SymLvAtAtInd = np.zeros((NumSym,NumLvAtAt),int)
     for iSym in range(NumSym):
@@ -58,7 +58,7 @@ def FindAtomSymmetry(ParaIn,ParaSym,ParaNbr):
     
     ''' Exclusion of Redundant Terms '''
     
-    # Exclude neihboring pairs outside the [[-N1, N1],[-N2, N2],[-N3, N3]] after symmetry operations
+    # Exclude neighboring pairs outside the [[-N1, N1],[-N2, N2],[-N3, N3]] after symmetry operations
     InclTF = np.min(SymLvAtAtInd,axis=0)>=0
     NumLvAtAtIncl = np.sum(InclTF) # = len(InclInd)
     SymLvAtAtInd = np.copy(SymLvAtAtInd[:,InclTF])

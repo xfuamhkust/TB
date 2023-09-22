@@ -37,12 +37,16 @@ from ck.CheckEigValSym import CheckEnergySymmetry as CheckE
 # the program will compute primitive from conventional, or conventional from primitive.
 #2. When the
 
-# sys.argv[1] = 'data/ABO3/primitive_TBIN_ABO3.txt'
-# sys.argv[1] = 'data/Graphene/primitive_TBIN_Graphene.txt'
-# sys.argv[1] = 'data/h-BN/primitive_TBIN_h-BN.txt'
-# sys.argv[1] = 'data/NaCl/primitive_TBIN_NaCl.txt'
-# sys.argv[1] = 'data/Si/primitive_TBIN_Si.txt'
-
+# material = 'data/ABO3/primitive_TBIN_ABO3.txt'
+# material = 'data/Graphene/primitive_TBIN_Graphene.txt'
+# material = 'data/h-BN/primitive_TBIN_h-BN.txt'
+# material = 'data/NaCl/primitive_TBIN_NaCl.txt'
+# material = 'data/Si/primitive_TBIN_Si.txt'
+# lenParams=len(sys.argv)
+# if lenParams<2:
+#     sys.argv.append(material)
+# else:
+#     sys.argv[1] = material
 
 lenParams=len(sys.argv)
 if lenParams!=2:
