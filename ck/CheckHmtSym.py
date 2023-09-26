@@ -37,7 +37,7 @@ def CheckHamiltonianSymmetry(ParaIn,ParaSym,ParaSymAt,ParaHmtR):
     NumStt        = len(HmtMatLv[0])
     NumAt         = len(SymAt0[0])
     NumAtType     = len(AtOrb)
-    AtOrbAll = np.zeros((NumAt,16),int)
+    AtOrbAll = np.zeros((NumAt,94),int)
     for iAt in range(1,NumAt+1):
         AtOrbAll[iAt-1] = AtOrb[AtTypeInd[iAt-1]]
     # Trans uStt to iAt & iOrb
@@ -95,13 +95,16 @@ def CheckHamiltonianSymmetry(ParaIn,ParaSym,ParaSymAt,ParaHmtR):
     '''###################   D(g)   ##################'''
     # D^orb_ab = <a|gb> = <a|g|b> --- From HopRel
     # Write Symmetries acting on SPDF together
-    SymSPDF = np.zeros((NumSym,16,16))
-    for iOrb in range(4):
-        SymSPDF[:,iOrb**2:(iOrb+1)**2,iOrb**2:(iOrb+1)**2] = SymOrb[iOrb]
+    IndSPDF = np.array([1,1,3,1,3,5,1,3,5,7,1,3,5,7,1,3,5,7,1,3,5,7,1,3,5,7])
+    SymSPDF = np.zeros((NumSym,94,94))
+    count = 0
+    for Indi in IndSPDF:
+        SymSPDF[:,count:count+Indi,count:count+Indi] = SymOrb[(Indi-1)//2]
+        count += Indi
     
     # Write Symmetries acting on input orbitals
     Ind  = [np.ix_(np.where(AtOrb[iAt])[0],np.where(AtOrb[iAt])[0]) for iAt in range(NumAtType)]
-    SymAtOrb = [] # DgOrb
+    SymAtOrb = []
     for iAt in range(NumAtType):
         SymAtOrbi = []
         for iSym in range(NumSym):
