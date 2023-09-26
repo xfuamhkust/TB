@@ -36,7 +36,7 @@ def CheckEnergySymmetry(ParaIn,ParaSym,ParaSymAt,ParaHmtR,Visual = True):
     NumStt        = len(HmtMatLv[0])
     NumAt         = len(SymAt0[0])
     AtomOrbNum    = np.sum(AtOrb,axis=1)
-    AtOrbAll = np.zeros((NumAt,16),int)
+    AtOrbAll = np.zeros((NumAt,94),int)
     for iAt in range(1,NumAt+1):
         AtOrbAll[iAt-1] = AtOrb[AtTypeInd[iAt-1]]
     AtomOrbNumAll = np.sum(AtOrbAll,axis=1)
