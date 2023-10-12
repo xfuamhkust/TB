@@ -10,7 +10,7 @@ def GetEigenSolution(ParaHmtK):
     EigVal = np.zeros((NumKpt,NumStt))
     EigVct = np.zeros((NumKpt,NumStt,NumStt),complex)
     for iKpt in range(NumKpt):
-        EigVal[iKpt], EigVct[iKpt] = np.linalg.eigh(HmtKpt[iKpt])
+        EigVal[iKpt], EigVct[iKpt] = np.linalg.eigh(HmtKpt[iKpt])# TODO: magnitude of eigenvalues
     
     # Output
     ParaEig = {"EigVal": EigVal,

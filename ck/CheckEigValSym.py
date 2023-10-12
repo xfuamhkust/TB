@@ -37,8 +37,8 @@ def CheckEnergySymmetry(ParaIn,ParaSym,ParaSymAt,ParaHmtR,Visual = True):
     NumAt         = len(SymAt0[0])
     AtomOrbNum    = np.sum(AtOrb,axis=1)
     AtOrbAll = np.zeros((NumAt,94),int)
-    for iAt in range(1,NumAt+1):
-        AtOrbAll[iAt-1] = AtOrb[AtTypeInd[iAt-1]]
+    for iAt in range(0,NumAt):
+        AtOrbAll[iAt] = AtOrb[AtTypeInd[iAt]]
     AtomOrbNumAll = np.sum(AtOrbAll,axis=1)
     AtomOrbNum = AtomOrbNumAll
     
@@ -66,10 +66,10 @@ def CheckEnergySymmetry(ParaIn,ParaSym,ParaSymAt,ParaHmtR,Visual = True):
     # H(gk) - symmetric gauge
     FctKpt = np.zeros((NumKpt,NumStt,NumStt),complex)
     for iKpt in range(NumKpt):
-        for iAt in range(1,NumAt+1):
-            i1 = np.sum(AtomOrbNum[: iAt-1])
-            i2 = np.sum(AtomOrbNum[: iAt-0])
-            FctKpt[iKpt,i1:i2,i1:i2] = np.eye(i2-i1) * np.exp(1j * pi2 * (KptLvRand[iKpt] @ AtLv[iAt-1]))
+        for iAt in range(0,NumAt):
+            i1 = np.sum(AtomOrbNum[: iAt])
+            i2 = np.sum(AtomOrbNum[: iAt+1])
+            FctKpt[iKpt,i1:i2,i1:i2] = np.eye(i2-i1) * np.exp(1j * pi2 * (KptLvRand[iKpt] @ AtLv[iAt]))
     HmtSymKpt = np.zeros((NumSym,NumKpt,NumStt,NumStt),complex)
     for iSym in range(NumSym):
         for iKpt in range(NumKpt):

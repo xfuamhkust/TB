@@ -4,10 +4,12 @@ import matplotlib.pyplot as plt
 import os
 import pathlib
 from datetime import datetime
+import sympy as smp
 
 plt.close("all")
 # Main
-from cd.SymGroup import GetSpaceGroupPrimitive
+# from cd.SymGroup import GetSpaceGroupPrimitive
+from cd.SymGroup import paraInPrim2Conv,conv2SGN,getParaSym
 from cd.NbrAtom  import FindNeighbor
 from cd.SymAtom import FindAtomSymmetry
 from cd.HopRel   import FindRelation
@@ -15,6 +17,7 @@ from cd.HopVal   import GetHoppingValue
 from cd.HmtReal  import GetHamiltonianReal
 from cd.KPoint   import GetKPoint
 from cd.HmtK     import GetHamiltonianK
+from cd.HmtK import HkSp2Np
 from cd.Eig      import GetEigenSolution
 # Read & Write
 from rw.ReadTBIN import ReadInput
@@ -24,11 +27,19 @@ from rw.ReadHmt  import ReadHamiltonianReal
 from rw.ReadKpt  import ReadKPoint
 from rw.WriteRel import WriteRelation
 from rw.WriteHmt import WriteHamiltonianReal
+from rw.WriteAna import WriteHamiltonianAnalytic
+from rw.WriteAna import writeHkAnalytic
+from rw.printHk import Hk2html
 # Plot
 from pl.PlotEB   import PlotEnergyBand
-from pl.PlotAt   import PlotAtoms
-from pl.PlotHop  import PlotHoppingTerm
+from pl.PlotEB import plotEigsFromHkSp
+# from pl.PlotAt   import PlotAtoms
+# from pl.PlotHop  import PlotHoppingTerm
 # from pl.PlotBZ  import PlotBrillouinZone
+# Check
+from ck.CheckOrbCpl import CheckOrbitalCompleteness as CheckOrbital
+from ck.CheckHmtSym import CheckHamiltonianSymmetry as CheckH
+from ck.CheckEigValSym import CheckEnergySymmetry as CheckE
 
 #This is the demo program for Auh-17-2023
 #1. It reads config file containing information of the crystal,
@@ -38,6 +49,7 @@ from pl.PlotHop  import PlotHoppingTerm
 
 # material = 'data/ABO3/primitive_TBIN_ABO3.txt'
 material = 'data/Graphene/primitive_TBIN_Graphene.txt'
+# rimitive_TBIN_Graphene.txt'
 # material = 'data/h-BN/primitive_TBIN_h-BN.txt'
 # material = 'data/NaCl/primitive_TBIN_NaCl.txt'
 # material = 'data/Si/primitive_TBIN_Si.txt'
@@ -63,19 +75,41 @@ if not os.path.isfile(inConfigName):
 # print(inConfigFolder)
 #read info
 ParaIn=ReadInput(inConfigName)
-ParaSym = GetSpaceGroupPrimitive(ParaIn)
-ParaIn["origin Bilbao"]=ParaSym["origin Bilbao"]
-ParaNbr    = FindNeighbor(ParaIn)
 Name=ParaIn["Name"]
+
+
+'''################### Determine space group of crystal ####################'''
+# ParaSym = GetSpaceGroupPrimitive(ParaIn)
+atmUnderConvVector,atmIndsConv=paraInPrim2Conv(ParaIn)
+SGN, originBilbao=conv2SGN(ParaIn,atmUnderConvVector,atmIndsConv)
+ParaSym=getParaSym(ParaIn,SGN, originBilbao)
+ParaIn["origin Bilbao"]=ParaSym["origin Bilbao"]
+
+
+'''##################### Complete Electronic orbitals ######################'''
+ParaIn,ParaSym = CheckOrbital(ParaIn,ParaSym)
+
+
+'''################### Relate hopping terms by symmetry ####################'''
+ParaNbr    = FindNeighbor(ParaIn)
 # PlotAtoms(ParaIn,ParaNbr,Name)
 tFindingRelationStart=datetime.now()
-# ParaSymAt  = FindAtomSymmetry(ParaIn,ParaSym,ParaNbr)
-# ParaRel    = FindRelation(ParaIn,ParaSym,ParaNbr,ParaSymAt)
-ParaRel    = ReadRelation(ParaIn["Folder"]+ "/HopRel.txt")
+ParaSymAt  = FindAtomSymmetry(ParaIn,ParaSym,ParaNbr)
+ParaRel    = FindRelation(ParaIn,ParaSym,ParaNbr,ParaSymAt)
 # PlotHoppingTerm(ParaIn,ParaNbr,ParaRel,Name,[5,6])
 tFindingRelationEnd=datetime.now()
 print("Finding symmetry relations: ",tFindingRelationEnd-tFindingRelationStart)
-# WriteRelation(ParaIn,ParaRel)
+WriteRelation(ParaIn,ParaRel)
+
+
+# '''############### Compute real space and k-space Hamiltonian ##############'''
+# '''---------------------- Analytic forms of Hamiltonian --------------------'''
+# ParaRel    = ReadRelation(ParaIn["Folder"]+ "/HopRel.txt")
+# WriteHamiltonianAnalytic(ParaIn,ParaRel)
+# HkMat=writeHkAnalytic(ParaIn,ParaRel)
+# '''-------------------------------------------------------------------------'''
+
+'''------------------------------ Energy Bands -----------------------------'''
 # From hopping relations to Hamiltonian in real space
 HopValIn   = ReadHopping(ParaIn["Folder"]+"/HopValIN_"+ParaIn["Name"]+".txt")
 ParaRel    = ReadRelation(ParaIn["Folder"]+ "/HopRel.txt")
@@ -84,11 +118,28 @@ ParaHmtR   = GetHamiltonianReal(ParaRel,HopValClas)
 WriteHamiltonianReal(ParaIn, ParaHmtR)
 # From Hamiltonian in real space to Hamiltonian in k space
 ParaHmtR   = ReadHamiltonianReal(ParaIn)
-ParaKptIn = ReadKPoint(ParaIn["Folder"]+"/KptIN_" + Name + ".txt")
-ParaKpt = GetKPoint(ParaKptIn)
+
+'''############### Compute real space and k-space Hamiltonian ##############'''
+'''---------------------- Analytic forms of Hamiltonian --------------------'''
+ParaRel    = ReadRelation(ParaIn["Folder"]+ "/HopRel.txt")
+WriteHamiltonianAnalytic(ParaIn,ParaRel)#Hammiltonian in real space
+HkMatSp,k1,k2,k3,tValsSpAll=writeHkAnalytic(ParaIn,ParaRel,ParaHmtR)# H(k): Hamiltonian in k-space
+Hk2html(ParaIn,HkMatSp,ParaIn["Folder"])#write H(k) to html file
+
+'''-------------------------------------------------------------------------'''
+CheckE(ParaIn,ParaSym,ParaSymAt,ParaHmtR,0)
+CheckH(ParaIn,ParaSym,ParaSymAt,ParaHmtR)
+ParaKptIn  = ReadKPoint(ParaIn["Folder"]+"/KptIN_" + Name + ".txt")
+ParaKpt    = GetKPoint(ParaKptIn)
 ParaHmtK   = GetHamiltonianK(ParaHmtR,ParaKpt)
+
+# HkTmp=HkSp2Np(HkMatSp,k1,k2,k3,tValsSpAll,1,2,3,HopValIn)
+
+pltSpEigs=plotEigsFromHkSp(HkMatSp,k1,k2,k3,tValsSpAll,ParaKpt,HopValIn,ParaRel,ParaIn["Folder"])
+
 tEigStart=datetime.now()
 ParaEig    = GetEigenSolution(ParaHmtK)
 ParaEigPlt = PlotEnergyBand(ParaKpt,ParaEig,ParaIn["Folder"])
 tEigEnd=datetime.now()
 print(Name+ " enerygy band: ",tEigEnd-tEigStart)
+'''-------------------------------------------------------------------------'''

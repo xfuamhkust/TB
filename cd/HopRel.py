@@ -4,33 +4,17 @@ import sympy as sp
 def FindRelation(ParaIn,ParaSym,ParaNbr,ParaSymAt):
     
     # Parameters
-    AtNum        = ParaIn["AtomNumber"]
+    # AtNum        = ParaIn["AtomNumber"]
     AtOrb        = ParaIn["AtomOrbital"]
     AtTypeInd    = ParaIn["AtomTypeIndex"]
     LvAtAt       = ParaNbr["LvAtAt"]
     SymOrb       = ParaSym["SymOrb"]
+    SymAtOrb = ParaSym["SymAtOrb"]
     SymLvAtAtInd = ParaSymAt["SymLvAtAtInd"]
     LvAtAtClas   = ParaSymAt["LvAtAtClas"]
     NumSym       = len(SymOrb[0])
-    NumAtType    = len(AtOrb)
+    # NumAtType    = len(AtOrb)
     NumClas      = len(LvAtAtClas)
-    
-    ''' Get the Representations of Input Orbitals '''
-    
-    # Write Symmetries acting on SPDF together
-    SymSPDF = np.zeros((NumSym,16,16))
-    for iOrb in range(4):
-        SymSPDF[:,iOrb**2:(iOrb+1)**2,iOrb**2:(iOrb+1)**2] = SymOrb[iOrb]
-    
-    # Write Symmetries acting on input orbitals
-    Ind  = [np.ix_(np.where(AtOrb[iAt])[0],np.where(AtOrb[iAt])[0]) for iAt in range(NumAtType)]
-    SymAtOrb = []
-    for iAt in range(NumAtType):
-        SymAtOrbi = []
-        for iSym in range(NumSym):
-            SymAtOrbi.append(SymSPDF[iSym][Ind[iAt]])
-        for i in range(AtNum[iAt]):
-            SymAtOrb.append(np.array(SymAtOrbi))
     
     ''' Find Relations of Hopping Terms in Groups '''
     
@@ -42,8 +26,8 @@ def FindRelation(ParaIn,ParaSym,ParaNbr,ParaSymAt):
         NumHopi = len(LvAtAtClasi)
         for iHop in range(NumHopi):
             n1, n2, n3, iAt, jAt = LvAtAt[LvAtAtClasi[iHop]]
-            Orbi = np.where(AtOrb[AtTypeInd[iAt-1]])[0]
-            Orbj = np.where(AtOrb[AtTypeInd[jAt-1]])[0]
+            Orbi = np.where(AtOrb[AtTypeInd[iAt]])[0]
+            Orbj = np.where(AtOrb[AtTypeInd[jAt]])[0]
             for iOrb in Orbi:
                 for jOrb in Orbj:
                     LvAtAtOOi.append([n1, n2, n3, iAt, jAt, iOrb, jOrb])
@@ -60,8 +44,8 @@ def FindRelation(ParaIn,ParaSym,ParaNbr,ParaSymAt):
             n1, n2, n3, iAt, jAt, iOrb, jOrb = LvAtAtOO[iClas][iHop]
             LvAtAtii = np.array([n1, n2, n3, iAt, jAt])
             LvAtAtIndii = FindIndex(LvAtAtii,LvAtAt)
-            Orbi = np.where(AtOrb[AtTypeInd[iAt-1]])[0]
-            Orbj = np.where(AtOrb[AtTypeInd[jAt-1]])[0]
+            Orbi = np.where(AtOrb[AtTypeInd[iAt]])[0]
+            Orbj = np.where(AtOrb[AtTypeInd[jAt]])[0]
             iOrbInd = np.where(Orbi == iOrb)[0][0]
             jOrbInd = np.where(Orbj == jOrb)[0][0]
             # Effect of symmetry
@@ -70,10 +54,10 @@ def FindRelation(ParaIn,ParaSym,ParaNbr,ParaSymAt):
                 SymLvAtAtIndiii = SymLvAtAtIndii[iSym]
                 SymLvAtAtiii = LvAtAt[SymLvAtAtIndiii]
                 n1_, n2_, n3_, iAt_, jAt_ = SymLvAtAtiii
-                SymiOrb = SymAtOrb[iAt-1][iSym,:,iOrbInd]
-                SymjOrb = SymAtOrb[jAt-1][iSym,:,jOrbInd]
-                Orbi_ = np.where(AtOrb[AtTypeInd[iAt_-1]])[0]
-                Orbj_ = np.where(AtOrb[AtTypeInd[jAt_-1]])[0]
+                SymiOrb = SymAtOrb[iAt][iSym,:,iOrbInd]
+                SymjOrb = SymAtOrb[jAt][iSym,:,jOrbInd]
+                Orbi_ = np.where(AtOrb[AtTypeInd[iAt_]])[0]
+                Orbj_ = np.where(AtOrb[AtTypeInd[jAt_]])[0]
                 HopRelClasiii = np.zeros(NumHopi)
                 HopRelClasiii[iHop] = -1
                 for io in range(len(SymiOrb)):
@@ -94,25 +78,13 @@ def FindRelation(ParaIn,ParaSym,ParaNbr,ParaSymAt):
             count += 1
         HopRelClas.append(HopRelClasi)
         
-    # Simplification of hopping relations
-    # 1. Delete zeros lines
-    for iClas in range(NumClas):
-        HopRelClasi = HopRelClas[iClas]
-        SumAbsHRi = np.sum(abs(HopRelClasi),axis=1)
-        IndNonZeroi = np.where(SumAbsHRi)[0]
-        HopRelClasNewi = HopRelClasi[IndNonZeroi]
-        HopRelClas[iClas] = HopRelClasNewi
-    # 2. Delete directly repeated lines
-    for iClas in range(NumClas):
-        HopRelClasi = HopRelClas[iClas]
-        HopRelClasNewi = np.unique(HopRelClasi,axis=0)
-        HopRelClas[iClas] = HopRelClasNewi
-    # 3. Reduced row echelon form
+    # Reduced row echelon form
     error = 1e-6
     for iClas in range(NumClas):
         HopRelClasi = HopRelClas[iClas]
         HopRelClasNewi = Rref(HopRelClasi,error)
-        HopRelClas[iClas] = HopRelClasNewi
+        In0 = np.where(np.sum(abs(HopRelClasNewi),axis=1)>error)[0]
+        HopRelClas[iClas] = HopRelClasNewi[In0]
     
     # Alternative form of hopping relations
     HopRelAltClas = []
@@ -148,20 +120,37 @@ def FindIndex(x,X,tol = 1e-3):
     else:
         return -1
 
-def Rref(M,error):
-    m,n = M.shape
-    ErrInt = round(-np.log10(error)); error = 10**-ErrInt
-    # Rref
-    M1 = np.array(sp.Matrix(M).rref()[0].tolist(),float)
-    # Eliminate error
+def Rref(A,tol):
+    # This code is changed from that on the following website: 
+    # https://stackoverflow.com/questions/7664246/python-built-in-function-to-do-matrix-reduction
+    # The original code is created by stackoverflow[user:1887559]
+    m,n = A.shape
+    pcol = -1 #pivot colum
+    for i in range(m):
+        pcol += 1
+        if pcol >= n : break
+        #pivot index
+        pid = np.argmax( abs(A[i:,pcol]) )
+        #Row exchange
+        A[i,:],A[pid+i,:] = A[pid+i,:].copy(),A[i,:].copy()
+        #pivot with given precision
+        while pcol < n and abs(A[i,pcol]) < tol:
+            pcol += 1
+            if pcol >= n : break
+            #pivot index
+            pid = np.argmax( abs(A[i:,pcol]) )
+            #Row exchange
+            A[i,:],A[pid+i,:] = A[pid+i,:].copy(),A[i,:].copy()
+        if pcol >= n : break
+        pivot = float(A[i,pcol])
+        for j in range(m):
+            if j == i: continue
+            mul = float(A[j,pcol])/pivot
+            A[j,:] = A[j,:] - A[i,:]*mul
+        A[i,:] /= pivot
+    # Transfer all integer-like numbers to integers
     for i in range(m):
         for j in range(n):
-            Mij = M1[i,j]; rMij = np.round(Mij,ErrInt)
-            if abs(Mij - rMij) < error*1e-2:
-                M1[i,j] = rMij
-    # Delete zero lines
-    if len(M1):
-        In0 = np.where(np.sum(abs(M1),axis=1))[0]
-        return M1[In0]
-        
-    return M1
+            if np.abs(A[i,j]-np.round(A[i,j])) < tol:
+                A[i,j] = np.round(A[i,j])
+    return A

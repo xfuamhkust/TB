@@ -23,14 +23,16 @@ def GetHamiltonianReal(ParaRel,HopValClas):
     n2_min = np.min(HopInd[:,1]); n2_max = np.max(HopInd[:,1])
     n3_min = np.min(HopInd[:,2]); n3_max = np.max(HopInd[:,2])
     NumLv = (n1_max-n1_min+1) * (n2_max-n2_min+1) * (n3_max-n3_min+1)
-    NumAt = np.max(HopInd[:,3:5])
+    # NumAt = np.max(HopInd[:,3:5])
+    NumAt=len(set(HopInd[:,3].tolist()+HopInd[:,4].tolist()))
     AtOrbInd = []
-    for iAt in range(1,NumAt+1):
+    for iAt in range(0,NumAt):
         Orbi = np.unique(HopInd[np.where(HopInd[:,3]==iAt)[0],5])
         for Orbii in Orbi:
             AtOrbInd.append([iAt,Orbii])
-    AtOrbInd = np.array(AtOrbInd)
+    AtOrbInd = np.array(AtOrbInd)# AtOrbInd is sorted first by the value of iAt, then by the value of Orbii
     NumStt = len(AtOrbInd)
+    # print(AtOrbInd)
     
     # Get Hamiltonian in real space (HR)
     HmtRealSpace = np.zeros((NumLv*NumStt*NumStt,7))
@@ -38,10 +40,10 @@ def GetHamiltonianReal(ParaRel,HopValClas):
     for n1 in range(n1_min,n1_max+1):
         for n2 in range(n2_min,n2_max+1):
             for n3 in range(n3_min,n3_max+1):
-                for iStt in range(1,NumStt+1):
-                    for jStt in range(1,NumStt+1):
-                        iAt, iOrb = AtOrbInd[iStt-1];
-                        jAt, jOrb = AtOrbInd[jStt-1];
+                for iStt in range(0,NumStt):
+                    for jStt in range(0,NumStt):
+                        iAt, iOrb = AtOrbInd[iStt];
+                        jAt, jOrb = AtOrbInd[jStt];
                         HopIndi = np.array([n1, n2, n3, iAt, jAt, iOrb, jOrb])
                         IndHopi = FindIndex(HopIndi, HopInd)
                         if IndHopi == -1 :
@@ -59,14 +61,14 @@ def GetHamiltonianReal(ParaRel,HopValClas):
         for n2 in range(n2_min,n2_max+1):
             for n3 in range(n3_min,n3_max+1):
                 HmtLv[count] = [n1, n2, n3]
-                for iStt in range(1,NumStt+1):
-                    for jStt in range(1,NumStt+1):
-                        iAt, iOrb = AtOrbInd[iStt-1];
-                        jAt, jOrb = AtOrbInd[jStt-1];
+                for iStt in range(0,NumStt):
+                    for jStt in range(0,NumStt):
+                        iAt, iOrb = AtOrbInd[iStt];
+                        jAt, jOrb = AtOrbInd[jStt];
                         HopIndi = np.array([n1, n2, n3, iAt, jAt, iOrb, jOrb])
                         IndHopi = FindIndex(HopIndi, HopInd)
                         if IndHopi == -1 : continue
-                        HmtMatLv[count,iStt-1,jStt-1] = HopVal[IndHopi]
+                        HmtMatLv[count,iStt,jStt] = HopVal[IndHopi]
                 count += 1
         
     # Output

@@ -1,5 +1,5 @@
 import numpy as np
-
+import sympy as smp
 def GetHamiltonianK(ParaHmtR,ParaKpt):
     
     # Parameters
@@ -20,6 +20,35 @@ def GetHamiltonianK(ParaHmtR,ParaKpt):
                 }
     
     return ParaHmtK
+
+
+def HkSp2Np(HkMatSp,k1,k2,k3,tValsSpAll,k1Val,k2Val,k3Val,HopValIn):
+    """
+
+    :param HkMatSp: sympy matrix of Hk
+    :param k1: momentum symbol
+    :param k2: momentum symbol
+    :param k3: momentum symbol
+    :param tValsSpAll: a list of symbols of free hopping coefficients
+    :param k1Val: momentum value
+    :param k2Val: momentum value
+    :param k3Val: momentum value
+    :param HopValIn: a list of free hopping coefficients
+    :return: numpy matrix of Hk
+    """
+    inSymbols=[k1,k2,k3]
+    for ti in tValsSpAll:
+        inSymbols.append(ti)
+    HkNp=smp.lambdify(inSymbols,HkMatSp,"numpy")
+
+
+    HopValInList=list(HopValIn)
+    numToAdd=len(inSymbols)-len(HopValInList)-3
+    for i in range(0,numToAdd):
+        HopValInList.append(0)
+
+    return HkNp(k1Val,k2Val,k3Val,*HopValInList)
+
 
 class HamiltonianK():
     

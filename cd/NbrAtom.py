@@ -18,7 +18,7 @@ def FindNeighbor(ParaIn):
     for n1 in range(-N1,N1+1):
         for n2 in range(-N2,N2+1):
             for n3 in range(-N3,N3+1):
-                for jAt in range(1,NumAt+1):
+                for jAt in range(0,NumAt):
                     LvAt[count] = [n1,n2,n3,jAt]
                     count += 1
     
@@ -28,7 +28,7 @@ def FindNeighbor(ParaIn):
     count = 0
     for iLvAt in range(NumLv*NumAt):
         n1,n2,n3,jAt = LvAt[iLvAt]
-        for iAt in range(1,NumAt+1):
+        for iAt in range(0,NumAt):
             LvAtAt[count] = [n1,n2,n3,iAt,jAt]#iAt: 0,0,0 cell
             LvAtAtInd[count] = [iAt,iLvAt]
             count += 1
@@ -40,13 +40,13 @@ def FindNeighbor(ParaIn):
     LvAtXyz = np.zeros((NumLv*NumAt,3))
     for iLvAt in range(NumLv*NumAt):
         n1,n2,n3,jAt = LvAt[iLvAt]
-        LvAtXyz[iLvAt] = n1*Lv[0] + n2*Lv[1] + n3*Lv[2] + AtLv[jAt-1] @ Lv
+        LvAtXyz[iLvAt] = n1*Lv[0] + n2*Lv[1] + n3*Lv[2] + AtLv[jAt] @ Lv
     
     # Calculate the distance of the neighboring pairs
     LvAtAtDis = np.zeros((NumLv*NumAt*NumAt))
     for iLvAtAt in range(NumLv*NumAt*NumAt):
         iAt,iLvAt = LvAtAtInd[iLvAtAt]
-        LvAtAtDis[iLvAtAt] = np.linalg.norm(LvAtXyz[iLvAt] - AtXyz[iAt-1])
+        LvAtAtDis[iLvAtAt] = np.linalg.norm(LvAtXyz[iLvAt] - AtXyz[iAt])
     
     # Find all unique distances
     error = 1e-6

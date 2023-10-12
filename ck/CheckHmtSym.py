@@ -38,23 +38,23 @@ def CheckHamiltonianSymmetry(ParaIn,ParaSym,ParaSymAt,ParaHmtR):
     NumAt         = len(SymAt0[0])
     NumAtType     = len(AtOrb)
     AtOrbAll = np.zeros((NumAt,94),int)
-    for iAt in range(1,NumAt+1):
-        AtOrbAll[iAt-1] = AtOrb[AtTypeInd[iAt-1]]
+    for iAt in range(0,NumAt):
+        AtOrbAll[iAt] = AtOrb[AtTypeInd[iAt]]
     # Trans uStt to iAt & iOrb
     Stt2AtOrb = np.zeros((NumStt,2),int)
     count = 0
-    for iAt in range(1,NumAt+1):
-        Ind = np.where(AtOrbAll[iAt-1]==1)[0]
+    for iAt in range(0,NumAt):
+        Ind = np.where(AtOrbAll[iAt]==1)[0]
         for Indi in Ind:
             Stt2AtOrb[count] = [iAt,Indi]
             count += 1
     # Trans iAt to uStt
     At2Stt = np.zeros((NumAt,2),int)
-    for iAt in range(1,NumAt+1):
+    for iAt in range(0,NumAt):
         Ind = np.where(Stt2AtOrb[:,0]==iAt)[0]
         i1 = np.min(Ind)
         i2 = np.max(Ind) + 1
-        At2Stt[iAt-1] = [i1,i2]
+        At2Stt[iAt] = [i1,i2]
     '''################################################'''
     
     '''###################   H(gk)   ##################'''
@@ -83,9 +83,9 @@ def CheckHamiltonianSymmetry(ParaIn,ParaSym,ParaSymAt,ParaHmtR):
     FctSymKpt = np.zeros((NumSym,NumKpt,NumStt,NumStt),complex)
     for iSym in range(NumSym):
         for iKpt in range(NumKpt):
-            for iAt in range(1,NumAt+1):
-                i1, i2 = At2Stt[iAt-1]
-                FctSymKpt[iSym,iKpt,i1:i2,i1:i2] = np.eye(i2-i1) * np.exp(1j * pi2 * (SymKptLvRand[iSym,iKpt] @ AtLv[iAt-1]))
+            for iAt in range(0,NumAt):
+                i1, i2 = At2Stt[iAt]
+                FctSymKpt[iSym,iKpt,i1:i2,i1:i2] = np.eye(i2-i1) * np.exp(1j * pi2 * (SymKptLvRand[iSym,iKpt] @ AtLv[iAt]))
     HmtSymKpt = np.zeros((NumSym,NumKpt,NumStt,NumStt),complex)
     for iSym in range(NumSym):
         for iKpt in range(NumKpt):
@@ -115,12 +115,12 @@ def CheckHamiltonianSymmetry(ParaIn,ParaSym,ParaSymAt,ParaHmtR):
     # D(g)
     Dg = np.zeros((NumSym,NumStt,NumStt))
     for iSym in range(NumSym):
-        for iAt in range(1,NumAt+1):
-            OiAt = SymAt0[iSym,iAt-1,-1]
-            i1, i2 = At2Stt[ iAt-1]
-            j1, j2 = At2Stt[OiAt-1]
+        for iAt in range(0,NumAt):
+            OiAt = SymAt0[iSym,iAt,-1]
+            i1, i2 = At2Stt[ iAt]
+            j1, j2 = At2Stt[OiAt]
             # Dg[iSym,i1:i2,j1:j2] = SymAtOrb[iAt-1][iSym]
-            Dg[iSym,j1:j2,i1:i2] = SymAtOrb[OiAt-1][iSym]
+            Dg[iSym,j1:j2,i1:i2] = SymAtOrb[OiAt][iSym]
     '''################################################'''
     
     '''#############  D(g^−1) H(gk) D(g)  #############'''

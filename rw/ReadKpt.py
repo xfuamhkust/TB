@@ -28,10 +28,10 @@ def ReadKPoint(FileName):
         KptLvEnd      = np.array(KptLvEnd)
         KptLvEndName  = np.array(KptLvEndName)
         ParaKptIn = {"Method":       Method,
-                     "nk":           nk,
-                     "Lv":           Lv,
-                     "KptLvEnd":     KptLvEnd,
-                     "KptLvEndName": KptLvEndName,
+                     "nk":           nk, #number of points
+                     "Lv":           Lv, # basis for primitive cell
+                     "KptLvEnd":     KptLvEnd, # coordinates of special points in BZ under reciprocal basis
+                     "KptLvEndName": KptLvEndName, #name of special points along the path in BZ
                      }
     elif Method == "Point":
         KptLv = []

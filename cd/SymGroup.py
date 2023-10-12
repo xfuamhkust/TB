@@ -36,7 +36,7 @@ def GetSpaceGroupPrimitive(ParaIn):
 
     atmIndsPrim=ParaIn["AtomTypeIndex"]
     atmPosPrim=ParaIn["AtomSite"]#coordinates under #
-    atmIndsConv=[]#coordinates under Cartesian basis
+    atmIndsConv=[]#indices of atoms in conventional cell
     atmPosConvCartesian=[]#coordinates under Cartesian  basis
 
 
@@ -77,7 +77,7 @@ def GetSpaceGroupPrimitive(ParaIn):
     SymXyz, SymXyzt = GetSymXyz(SymLvSG, LvSG)  # space group operators under Cartesian basis
     SymLv = GetSymLv(SymXyzt, Lv)  # space group operators under primitive cell basis
     SymOrb = GetSymOrb(SymXyz)  # Atomic orbitals transformed under space group operators
-    SymSpn = np.array([GetSymSpin(SymXyz[i]) for i in range(len(SymLvSG))], "complex")  # to be checked...
+    SymSpn = np.array([GetSymSpin(SymXyz[i]) for i in range(len(SymLvSG))], "complex")  # TODO: to be checked...
     ParaSym = {"SymLvSG": SymLvSG,
                "SymXyz": SymXyz,
                "SymXyzt": SymXyzt,
@@ -380,4 +380,111 @@ def GetSymD_new(R):
     RD = DR @ CD.T
     
     return RD.T
-    
+
+
+def paraInPrim2Conv(ParaIn):
+    """
+
+    :param ParaIn:  For primitive cell:
+     ParaIn = {"Name":                       Name if Name else "Material",
+                  "Dimension":                  Dim  if Dim  else 3,
+                  "Spin":                       Spn  if Spn  else 0,
+                  "Lattice type":               primitive,
+                "NeighborNumber":             Nbr  if Nbr  else 1,
+                "LatticeVector":              Lv,
+                "AtomName":                   AtName,
+                "AtomNumber":                 AtNum,
+                "AtomSite":                   AtSite,
+                "AtomOrbital":                AtOrb,
+                "AtomTypeIndex":              AtTypeInd,
+                }
+    :return: atoms'positions under conventional cell basis, atom indices
+    """
+
+    # basis of primitive cell
+    aVecOfP, bVecOfP, cVecOfP = ParaIn["LatticeVector"]
+    tConvStart = datetime.now()
+    convParamsAndInfo = prim2convWithBasis(aVecOfP, bVecOfP, cVecOfP)  # to conventional cell
+    tConvEnd = datetime.now()
+    print("primitive to conventional cell:", tConvEnd - tConvStart)
+    aVecOfC = convParamsAndInfo["Basis a"]
+    bVecOfC = convParamsAndInfo["Basis b"]
+    cVecOfC = convParamsAndInfo["Basis c"]
+    brvType = convParamsAndInfo["Bravais type"]
+
+    atmIndsPrim = ParaIn["AtomTypeIndex"]
+    atmPosPrim = ParaIn["AtomSite"]  # coordinates under #
+    atmIndsConv = []  # coordinates under Cartesian basis
+    atmPosConvCartesian = []  # coordinates under Cartesian  basis
+    # print(aVecOfC)
+    # print(bVecOfC)
+    # print(cVecOfC)
+    # print(brvType)
+    # print(atmIndsPrim)
+    # print(atmPosPrim)
+    if len(atmIndsPrim) != len(atmPosPrim):
+        raise ValueError("Atom numbers != number of positions.")
+
+    for j in range(0, len(atmIndsPrim)):
+        posTmp = atmPosPrim[j]
+        indTmp = atmIndsPrim[j]
+        posTmpCartesian = posTmp[0] * aVecOfP + posTmp[1] * bVecOfP + posTmp[2] * cVecOfP
+        pntsInConvTmp = truncatedPointsInConventionalCell(posTmpCartesian, aVecOfC, bVecOfC, cVecOfC, brvType)
+        for onePnt in pntsInConvTmp:
+            atmIndsConv.append(indTmp)
+            atmPosConvCartesian.append(onePnt)
+    basisConv = np.array([aVecOfC, bVecOfC, cVecOfC], dtype=np.float64).T
+    basisConvInv = np.linalg.inv(basisConv)
+    # print(atmIndsConv)
+    # print(atmPosConvCartesian)
+    # Cartesian basis to conventional vector basis
+    LvSG = np.array([aVecOfC, bVecOfC, cVecOfC], dtype=np.float64)
+    ParaIn["LvSG"]=LvSG
+    atmUnderConvVector = [basisConvInv @ pnt for pnt in atmPosConvCartesian]
+
+    return atmUnderConvVector,atmIndsConv
+
+
+def conv2SGN(ParaIn,atmUnderConvVector,atmIndsConv):
+    """
+
+    :param ParaIn:
+    :param atmUnderConvVector: atoms' positions under conventional cell basis
+    :param atmIndsConv: atom indices
+    :return: space group number of this crystal, origin of this crystal, by the convention of Bilbao's data
+    """
+
+    tFindSGNStart = datetime.now()
+    SGN, originBilbao = FindSGN(atmUnderConvVector, atmIndsConv)
+    tFindSGNEnd = datetime.now()
+    print(ParaIn["Name"] + "'s symmetry group number: " + str(SGN) + ", time: " + str(tFindSGNEnd - tFindSGNStart))
+
+    return SGN, originBilbao
+
+
+def getParaSym(ParaIn,SGN, originBilbao):
+    """
+
+    :param ParaIn:
+    :param SGN: space group number
+    :param originBilbao: origin of Bilbao's data
+    :return: ParaSym
+    """
+    LvSG=ParaIn["LvSG"]
+    Lv = ParaIn["LatticeVector"]
+    SymLvSG = GetSymLvSG(SGN)  # space group operators under conventional unit cell basis
+    SymXyz, SymXyzt = GetSymXyz(SymLvSG, LvSG)  # space group operators under Cartesian basis
+    SymLv = GetSymLv(SymXyzt, Lv)  # space group operators under primitive cell basis
+    SymOrb = GetSymOrb(SymXyz)  # Atomic orbitals transformed under space group operators
+    SymSpn = np.array([GetSymSpin(SymXyz[i]) for i in range(len(SymLvSG))], "complex")  # TODO: to be checked...
+    ParaSym = {"SymLvSG": SymLvSG,
+               "SymXyz": SymXyz,
+               "SymXyzt": SymXyzt,
+               "SymLv": SymLv,
+               "SymOrb": SymOrb,
+               "SymSpn": SymSpn,
+               "origin Bilbao": originBilbao
+               }
+
+    return ParaSym
+
