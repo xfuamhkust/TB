@@ -21,6 +21,7 @@ from cd.HmtK     import HkSp2Np
 from cd.Eig      import GetEigenSolution
 from cd.Berry    import GetBerryK
 from cd.Berry    import GetAHNC
+from cd.Dos      import GetDos
 # Read & Write
 from rw.ReadTBIN import ReadInput
 from rw.ReadHop  import ReadHopping
@@ -33,10 +34,12 @@ from rw.WriteAna import WriteHamiltonianAnalytic
 from rw.WriteAna import writeHkAnalytic
 from rw.printHk  import Hk2html
 from rw.ReadBer  import ReadBerryPara
+from rw.ReadDos  import ReadDosPara
 # Plot
 from pl.PlotEB   import PlotEnergyBand
 from pl.PlotEB   import plotEigsFromHkSp
 from pl.PlotBC   import PlotBerryCurvature
+from pl.PlotDos  import PlotDOS
 # from pl.PlotAt   import PlotAtoms
 # from pl.PlotHop  import PlotHoppingTerm
 # from pl.PlotBZ  import PlotBrillouinZone
@@ -167,4 +170,10 @@ CheckH(ParaIn,ParaSym,ParaSymAt,ParaHmtR)
 # '''This part needs an isolated test!'''
 
 
-
+'''###################### Calculate density of states ######################'''
+# Read real space Hamiltonian and input parameters (method,nE,nk)
+ParaHmtR   = ReadHamiltonianReal(ParaIn)
+ParaDosIn  = ReadDosPara(ParaIn["Folder"]+ "/DosIN_" + Name + ".txt")
+# Calculate DOS
+ParaDos = GetDos(ParaIn,ParaHmtR,ParaDosIn)
+ParaDosPlt = PlotDOS(ParaDos,ParaIn["Folder"])
