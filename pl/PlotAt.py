@@ -20,15 +20,15 @@ def PlotAtoms(ParaIn,ParaNbr,Name=""):
     
     # Classify different atoms
     LvAtType = LvAt[:,-1]
-    NumType = np.max(LvAtType)
-    IndType = np.array([np.where(LvAtType==i)[0] for i in range(1,NumType+1)])
+    NumType = np.max(LvAtType) + 1
+    IndType = np.array([np.where(LvAtType==i)[0] for i in range(NumType)])
     NumAtType = np.max(AtTypeInd) + 1
     IndAtType = [np.where(AtTypeInd==i)[0] for i in range(NumAtType)]
     
     # Plot atoms
     fig = plt.figure()
     x = LvAtXyz[:,0]; y = LvAtXyz[:,1]; z = LvAtXyz[:,2]
-    if np.linalg.norm(z):
+    if np.linalg.norm(z-np.mean(z)):
         # 3D
         Lv3D = np.unique(LvAt[:,:3],axis=0)
         # plot cell edges

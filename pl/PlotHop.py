@@ -24,8 +24,8 @@ def PlotHoppingTerm(ParaIn,ParaNbr,ParaRel,Name="",HopInd=[]):
     
     # Classify different atoms
     LvAtType = LvAt[:,-1]
-    NumType = np.max(LvAtType)
-    IndType = np.array([np.where(LvAtType==i)[0] for i in range(1,NumType+1)])
+    NumType = np.max(LvAtType) + 1
+    IndType = np.array([np.where(LvAtType==i)[0] for i in range(NumType)])
     NumAtType = np.max(AtTypeInd) + 1
     IndAtType = [np.where(AtTypeInd==i)[0] for i in range(NumAtType)]
     
@@ -46,7 +46,7 @@ def PlotHoppingTerm(ParaIn,ParaNbr,ParaRel,Name="",HopInd=[]):
     # Plot atoms
     fig = plt.figure()
     x = LvAtXyz[:,0]; y = LvAtXyz[:,1]; z = LvAtXyz[:,2]
-    if np.linalg.norm(z):
+    if np.linalg.norm(z-np.mean(z)):
         # 3D
         if len(HopInd) == 0:
             HopInd = np.arange(1,7+1)

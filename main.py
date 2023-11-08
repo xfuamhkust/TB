@@ -22,6 +22,9 @@ from cd.Eig      import GetEigenSolution
 from cd.Berry    import GetBerryK
 from cd.Berry    import GetAHNC
 from cd.Dos      import GetDos
+from cd.Strip    import GetStrip
+from cd.EigStrip import GetEigStrip
+from cd.Qc       import GetQc
 # Read & Write
 from rw.ReadTBIN import ReadInput
 from rw.ReadHop  import ReadHopping
@@ -35,11 +38,15 @@ from rw.WriteAna import writeHkAnalytic
 from rw.printHk  import Hk2html
 from rw.ReadBer  import ReadBerryPara
 from rw.ReadDos  import ReadDosPara
+from rw.ReadQc   import ReadQcPara
 # Plot
 from pl.PlotEB   import PlotEnergyBand
 from pl.PlotEB   import plotEigsFromHkSp
 from pl.PlotBC   import PlotBerryCurvature
 from pl.PlotDos  import PlotDOS
+from pl.PlotStrip import PlotAtomStrip
+from pl.PlotEB1D import PlotEnergyBand1D
+from pl.PlotQc   import PlotQuanCond
 # from pl.PlotAt   import PlotAtoms
 # from pl.PlotHop  import PlotHoppingTerm
 # from pl.PlotBZ  import PlotBrillouinZone
@@ -56,7 +63,7 @@ from ck.CheckEigValSym import CheckEnergySymmetry as CheckE
 
 # material = 'data/ABO3/primitive_TBIN_ABO3.txt'
 material = 'data/Graphene/primitive_TBIN_Graphene.txt'
-# material = 'data/h-BN/primitive_TBIN_h-BN.txt'
+material = 'data/h-BN/primitive_TBIN_h-BN.txt'
 # material = 'data/NaCl/primitive_TBIN_NaCl.txt'
 # material = 'data/Si/primitive_TBIN_Si.txt'
 lenParams=len(sys.argv)
@@ -170,10 +177,26 @@ CheckH(ParaIn,ParaSym,ParaSymAt,ParaHmtR)
 # '''This part needs an isolated test!'''
 
 
-'''###################### Calculate density of states ######################'''
+# '''###################### Calculate density of states ######################'''
+# # Read real space Hamiltonian and input parameters (method,nE,nk)
+# ParaHmtR   = ReadHamiltonianReal(ParaIn)
+# ParaDosIn  = ReadDosPara(ParaIn["Folder"]+ "/DosIN_" + Name + ".txt")
+# # Calculate DOS
+# ParaDos = GetDos(ParaIn,ParaHmtR,ParaDosIn)
+# ParaDosPlt = PlotDOS(ParaDos,ParaIn["Folder"])
+
+'''######################## Calculate info of strip ########################'''
 # Read real space Hamiltonian and input parameters (method,nE,nk)
 ParaHmtR   = ReadHamiltonianReal(ParaIn)
-ParaDosIn  = ReadDosPara(ParaIn["Folder"]+ "/DosIN_" + Name + ".txt")
-# Calculate DOS
-ParaDos = GetDos(ParaIn,ParaHmtR,ParaDosIn)
-ParaDosPlt = PlotDOS(ParaDos,ParaIn["Folder"])
+ParaQcIn   = ReadQcPara(ParaIn["Folder"]+ "/QcIN_" + Name + ".txt")
+# Info of strip
+ParaStrip  = GetStrip(ParaIn,ParaHmtR,ParaQcIn)
+# Plot strip
+PlotAtomStrip(ParaStrip,ParaIn["Name"])
+# Calculate energy band
+ParaEigStrip = GetEigStrip(ParaStrip)
+PlotEnergyBand1D(ParaEigStrip,ParaIn["Folder"])
+# Calculate quantum conductance
+ParaQc     = GetQc(ParaQcIn,ParaStrip)
+PlotQuanCond(ParaQc,ParaIn["Folder"])
+'''This part is only tested with graphene & BN!'''
