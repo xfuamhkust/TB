@@ -131,3 +131,130 @@ def GetAtOrb(Orb):
         else:
             print("No orbital named" + Orbi + "!")
     return Orb0
+
+
+#######################################
+#OOP
+
+class readInput:
+    #mixin class, module for reading config file
+
+    def readContents(self,fileName):
+        """
+
+        :param fileName: configuration containing the info of the lattice and supercell
+        :return: contents in file
+        """
+        f = [line.strip() for line in open(fileName, "r").readlines()]
+        contents = []
+        for oneline in f:
+            lineContents = oneline.split()
+            if len(lineContents) == 0:  # skip empty lines
+                continue
+            if lineContents[0] in self.keywords:#the variable keywords is defined in class lattice
+                contents.append(lineContents)
+            else:
+                if len(contents) == 0:
+                    raise ValueError("file not starting with a keyword.")
+                contents[-1].append(lineContents)
+
+        return contents
+
+    @staticmethod
+    def str2num(numStrList, dtype="float"):
+        """
+
+        :param numStrList: number string to be converted
+        :param dtype: converted data type
+        :return:
+        """
+
+        if dtype == "float":
+            ret = np.array([float(elem) for elem in numStrList])
+            return ret
+        if dtype == "int":
+            ret = np.array([int(elem) for elem in numStrList])
+            return ret
+        if dtype == "complex":
+            ret = np.array([complex(elem) for elem in numStrList])
+            return ret
+
+    def readInput(self,fileName):
+        """
+
+        :param fileName:
+        :return: configuration containing the info of the lattice and supercell
+        """
+        contents = self.readContents(fileName)
+        for item in contents:
+            kw = item[0]
+            if kw == "Name":
+                self.Name = item[1]
+            elif kw == "Dim":
+                self.Dim = int(item[1])
+            elif kw == "Spin":
+                self.Spn = int(item[1])
+            elif kw == "Nbr":
+                n = int(item[1])
+                self.Nbr = [n, n, 0 if self.Dim == 2 else n]
+            elif kw == "LatType":
+                self.LatType = item[1]
+            elif kw == "LatVec":
+                Lv = []
+                for vecStr in item[1:]:
+                    Lv.append(self.str2num(vecStr, "float"))
+                self.Lv = np.array(Lv)
+            elif kw == "AtTpNum":
+                self.NumAtType = int(item[1])
+            elif kw == "Bases":
+                self.AtName = []
+                self.AtNum = []
+                self.AtOrb = []
+                for strList in item[1:]:
+                    self.AtName.append(strList[0])
+                    self.AtNum.append(int(strList[1]))
+                    self.AtOrb.append(self.GetAtOrb(strList[2:]))
+            elif kw == "AtomSite":
+                AtSite = []
+                for strVec in item[1:]:
+                    AtSite.append(self.str2num(strVec, "float"))
+                self.AtSite = np.array(AtSite)
+            elif kw == "supercellSize":
+                self.supercellSize = self.str2num(item[1], "int")
+            elif kw=="supercellVacancy":
+                self.supercellVacList=[]
+                for row in item[1:]:
+                    tmpList=[self.str2num(row[0:3],"int"),int(row[3]),row[4]]
+                    self.supercellVacList.append(tmpList)
+            elif kw=="supercellSubstitution":
+                self.supercellSubsList=[]
+                for row in item[1:]:
+                    tmpList=[self.str2num(row[0:3],"int"), int(row[3]),row[4], row[5:]]
+                    self.supercellSubsList.append(tmpList)
+            elif kw=="supercellInterstitial":
+                self.supercellInterstitialList=[]
+                for row in item[1:]:
+                    tmpList=[self.str2num(row[0:3],"int"),self.str2num(row[3:6],"float"),row[6],row[7:]]
+                    self.supercellInterstitialList.append(tmpList)
+
+
+
+    def GetAtOrb(self,Orb):
+        """
+
+        :param Orb: a list of strings of orbitals
+        :return: vector of 1 and 0 to represent orbitals
+        """
+        # n=1~7 or unknown
+        Orb0 = np.zeros(94, int)  # 1+4+9+16+16+16+16+16
+        for Orbi in Orb:
+            IndGrp = np.where(self.OrbGrp == Orbi)[0]
+            IndIdv = np.where(self.OrbIdv == Orbi)[0]
+            if len(IndGrp):
+                Orb0[IndGrp[0]] = 1
+            elif len(IndIdv):
+                Orb0[IndIdv[0]] = 1
+            else:
+                print("No orbital named" + Orbi + "!")
+        return Orb0
+
