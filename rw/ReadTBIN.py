@@ -27,97 +27,145 @@ OrbIdv = np.array(["1s","2s","2px","2py","2pz",
                    "s","px","py","pz","dxy","dyz","dzx","dx2-y2","dz2",
                    "fz3","fxz2","fyz2","fxyz","fz(x2-y2)","fx(x2-3y2)","fy(3x2-y2)"])
 
-
-def ReadInput(FileName):
+keywords=["Name", "Dim", "Spin", "Nbr",
+          "LatType", "LatVec", "AtTpNum","Bases",
+          "AtomSite", "supercellSize","supercellVacancy","supercellSubstitution",
+          "supercellInterstitial"]
+def ReadInput(fileName):
     """
 
-    :param FileName: configuration containing the info of the lattice
+    :param fileName: configuration containing the info of the lattice
     :return: info of lattice
     """
-    f = [line.strip() for line in open(FileName,"r").readlines()]#TODO: check readin error
-    Name=CaptInfo("Name",f)
-    Dim=int(CaptInfo("Dim",f))
-    Spn=int(CaptInfo("Spin",f))
-    # SGN=int(CaptInfo("SGN",f));
-    NumAtType=int(CaptInfo("AtTpNum",f))
-    LatType=CaptInfo("LatType",f)
-    # print(LatType)
-    if  re.search("[^a-zA-Z]+",LatType) or LatType is None:
-        raise ValueError("Invalid lattice type name.")
-    LatType=LatType.lower()#lattice type
-    # print(LatType)
-    Nbr0=CaptInfo("Nbr",f)
-    if type(Nbr0) == str:
-        n = int(Nbr0); Nbr = [n, n, 0 if Dim == 2 else n]
-    else:
-        Nbr = [int(Nbr0[0]), int(Nbr0[1]), 0 if Dim == 2 else int(Nbr0[2])]
-    # LvSG   = np.array([CaptInfo("LatVecSG",f,3)[i].split() for i in range(3)],float)
-    # Lv     = np.array([CaptInfo("LatVec"  ,f,3)[i].split() for i in range(3)],float)
-    Bas    = [CaptInfo("Bases",f,NumRow=NumAtType)[i].split() for i in range(NumAtType)]
-    AtName = [Bas[i][0] for i in range(NumAtType)]
-    AtNum  = [int(Bas[i][1]) for i in range(NumAtType)]
-    AtSite = np.array([CaptInfo("AtomSite",f,NumRow=sum(AtNum))[i].split() for i in range(sum(AtNum))],float)
-    AtOrb  = np.array([GetAtOrb(Bas[i][2:]) for i in range(NumAtType)])
+    contents = readContents(fileName)
+    ParaIn = {}
+    ParaIn["supercell"]={}
+    for item in contents:
+        kw = item[0]
+        if kw == "Name":
+            Name = item[1]
+            ParaIn["Name"]= Name if Name else "Material"
+
+        elif kw == "Dim":
+            Dim = int(item[1])
+            ParaIn["Dimension"]=Dim  if Dim  else 3
+        elif kw == "Spin":
+            Spn = int(item[1])
+            ParaIn["Spin"]=Spn
+        elif kw == "Nbr":
+            n = int(item[1])
+
+        elif kw == "LatType":
+            LatType = item[1]
+            ParaIn["Lattice type"]=LatType
+        elif kw == "LatVec":
+            Lv = []
+            for vecStr in item[1:]:
+                Lv.append(str2num(vecStr, "float"))
+            Lv = np.array(Lv)
+            ParaIn["LatticeVector"]=Lv
+        elif kw=="LatVecSG":
+            LvSG=[]
+            for vecStr in item[1:]:
+                LvSG.append(str2num(vecStr,"float"))
+            LvSG=np.array(LvSG)
+            ParaIn["SpaceGroupLatticeVector"]=LvSG
+        elif kw == "AtTpNum":
+            NumAtType = int(item[1])
+        elif kw == "Bases":
+            AtName = []
+            AtNum = []
+            AtOrb = []
+            for strList in item[1:]:
+                AtName.append(strList[0])
+                AtNum.append(int(strList[1]))
+                AtOrb.append(GetAtOrb(strList[2:]))
+            ParaIn["AtomName"]=AtName
+            ParaIn["AtomNumber"]=AtNum
+            ParaIn["AtomOrbital"]=AtOrb
+        elif kw == "AtomSite":
+            AtSite = []
+            for strVec in item[1:]:
+                AtSite.append(str2num(strVec, "float"))
+            AtSite = np.array(AtSite)
+            ParaIn["AtomSite"]=AtSite
+        elif kw == "supercellSize":
+            supercellSize = str2num(item[1], "int")
+            ParaIn["supercell"]["supercellSize"]=supercellSize
+        elif kw == "supercellVacancy":
+            supercellVacList = []
+            for row in item[1:]:
+                tmpList = [str2num(row[0:3], "int"), int(row[3]), row[4]]
+                supercellVacList.append(tmpList)
+            ParaIn["supercell"]["supercellVacancy"]=supercellVacList
+        elif kw == "supercellSubstitution":
+            supercellSubsList = []
+            for row in item[1:]:
+                tmpList = [str2num(row[0:3], "int"), int(row[3]), row[4], row[5:]]
+                supercellSubsList.append(tmpList)
+            ParaIn["supercell"]["supercellSubstitution"]=supercellSubsList
+        elif kw == "supercellInterstitial":
+            supercellInterstitialList = []
+            for row in item[1:]:
+                tmpList = [str2num(row[0:3], "int"), str2num(row[3:6], "float"), row[6], row[7:]]
+                supercellInterstitialList.append(tmpList)
+            ParaIn["supercell"]["supercellInterstitial"]=supercellInterstitialList
+    inConfigFolder = str(pathlib.Path(fileName).parent)
+    if len(ParaIn["supercell"])>0:
+        ParaIn["supercell"]["baseLatticeType"]=LatType
+    ParaIn["Folder"]=inConfigFolder
+    Nbr = [n, n, 0 if Dim == 2 else n]
+    ParaIn["NeighborNumber"]=Nbr
     # Relate atome index iAt with AtomType
     AtTypeInd = []
     for iAt in range(NumAtType):
         for jAt in range(AtNum[iAt]):
             AtTypeInd.append(iAt)
-    AtTypeInd = np.array(AtTypeInd,"int")
-    # Creat a new dictory for this material
-    # if (1 - os.path.exists("data/" + Name)):
-    #     os.mkdir("data/" + Name)
-    inConfigFolder=str(pathlib.Path(FileName).parent)
-    if LatType=="primitive":
-        Lv = np.array([CaptInfo("LatVec", f, 3)[i].split() for i in range(3)], float)
-        ParaIn = {"Name":                       Name if Name else "Material",
-                  "Dimension":                  Dim  if Dim  else 3,
-                  "Spin":                       Spn  if Spn  else 0,
-                  "Lattice type":               LatType,
-                # "SpaceGroupNumber":           SGN  if SGN  else 1,
-                "NeighborNumber":             Nbr  if Nbr  else 1,
-                "LatticeVector":              Lv,
-                # "SpaceGroupLatticeVector":    LvSG,
-                "AtomName":                   AtName,
-                "AtomNumber":                 AtNum,
-                "AtomSite":                   AtSite,
-                "AtomOrbital":                AtOrb,
-                "AtomTypeIndex":              AtTypeInd,
-                "OrbIdv":                     OrbIdv,
-                "Folder":                     inConfigFolder
-                }
-        return ParaIn
-    elif LatType=="conventional":
-        LvSG = np.array([CaptInfo("LatVecSG", f, 3)[i].split() for i in range(3)], float)
-        ParaIn = {"Name": Name if Name else "Material",
-                  "Dimension": Dim if Dim else 3,
-                  "Spin": Spn if Spn else 0,
-                  "Lattice type": LatType,
-                  # "SpaceGroupNumber":           SGN  if SGN  else 1,
-                  "NeighborNumber": Nbr if Nbr else 1,
-                  # "LatticeVector": Lv,
-                  "SpaceGroupLatticeVector":    LvSG,
-                  "AtomName": AtName,
-                  "AtomNumber": AtNum,
-                  "AtomSite": AtSite,
-                  "AtomOrbital": AtOrb,
-                  "AtomTypeIndex": AtTypeInd,
-                  "Folder": inConfigFolder
-                  }
-        return ParaIn
-    else:
-        raise ValueError("Wrong lattice name.")
+    AtTypeInd = np.array(AtTypeInd, "int")
+    ParaIn["AtomTypeIndex"]=AtTypeInd
 
-def CaptInfo(Name, FileList, NumRow = 0):
-    NumList = len(FileList)
-    for iList in range(NumList):
-        FileLine = FileList[iList].split()#TODO: more efficient ways of iteration
-        if FileLine[0] == Name:
-            if NumRow:
-                return FileList[iList+1:iList+1+NumRow]
-            else:
-                return FileLine[1:] if len(FileLine)-2 else FileLine[1]
-            
+
+    return ParaIn
+
+
+def str2num(numStrList, dtype="float"):
+    """
+
+    :param numStrList: number string to be converted
+    :param dtype: converted data type
+    :return: numerical values of the string
+    """
+    if dtype == "float":
+        ret = np.array([float(elem) for elem in numStrList])
+        return ret
+    if dtype == "int":
+        ret = np.array([int(elem) for elem in numStrList])
+        return ret
+    if dtype == "complex":
+        ret = np.array([complex(elem) for elem in numStrList])
+        return ret
+
+def readContents(fileName):
+    """
+
+    :param fileName: configuration containing the info of the lattice and supercell
+    :return: contents in file
+    """
+    f = [line.strip() for line in open(fileName, "r").readlines()]
+    contents = []
+    for oneline in f:
+        lineContents = oneline.split()
+        if len(lineContents) == 0:  # skip empty lines
+            continue
+        if lineContents[0] in keywords:  # the variable keywords is defined in class lattice
+            contents.append(lineContents)
+        else:
+            if len(contents) == 0:
+                raise ValueError("file not starting with a keyword.")
+            contents[-1].append(lineContents)
+    return contents
+
+
 def GetAtOrb(Orb):
     # n=1~7 or unknown
     Orb0 = np.zeros(94,int) #1+4+9+16+16+16+16+16
@@ -136,125 +184,125 @@ def GetAtOrb(Orb):
 #######################################
 #OOP
 
-class readInput:
-    #mixin class, module for reading config file
-
-    def readContents(self,fileName):
-        """
-
-        :param fileName: configuration containing the info of the lattice and supercell
-        :return: contents in file
-        """
-        f = [line.strip() for line in open(fileName, "r").readlines()]
-        contents = []
-        for oneline in f:
-            lineContents = oneline.split()
-            if len(lineContents) == 0:  # skip empty lines
-                continue
-            if lineContents[0] in self.keywords:#the variable keywords is defined in class lattice
-                contents.append(lineContents)
-            else:
-                if len(contents) == 0:
-                    raise ValueError("file not starting with a keyword.")
-                contents[-1].append(lineContents)
-
-        return contents
-
-    @staticmethod
-    def str2num(numStrList, dtype="float"):
-        """
-
-        :param numStrList: number string to be converted
-        :param dtype: converted data type
-        :return:
-        """
-
-        if dtype == "float":
-            ret = np.array([float(elem) for elem in numStrList])
-            return ret
-        if dtype == "int":
-            ret = np.array([int(elem) for elem in numStrList])
-            return ret
-        if dtype == "complex":
-            ret = np.array([complex(elem) for elem in numStrList])
-            return ret
-
-    def readInput(self,fileName):
-        """
-
-        :param fileName:
-        :return: configuration containing the info of the lattice and supercell
-        """
-        contents = self.readContents(fileName)
-        for item in contents:
-            kw = item[0]
-            if kw == "Name":
-                self.Name = item[1]
-            elif kw == "Dim":
-                self.Dim = int(item[1])
-            elif kw == "Spin":
-                self.Spn = int(item[1])
-            elif kw == "Nbr":
-                n = int(item[1])
-                self.Nbr = [n, n, 0 if self.Dim == 2 else n]
-            elif kw == "LatType":
-                self.LatType = item[1]
-            elif kw == "LatVec":
-                Lv = []
-                for vecStr in item[1:]:
-                    Lv.append(self.str2num(vecStr, "float"))
-                self.Lv = np.array(Lv)
-            elif kw == "AtTpNum":
-                self.NumAtType = int(item[1])
-            elif kw == "Bases":
-                self.AtName = []
-                self.AtNum = []
-                self.AtOrb = []
-                for strList in item[1:]:
-                    self.AtName.append(strList[0])
-                    self.AtNum.append(int(strList[1]))
-                    self.AtOrb.append(self.GetAtOrb(strList[2:]))
-            elif kw == "AtomSite":
-                AtSite = []
-                for strVec in item[1:]:
-                    AtSite.append(self.str2num(strVec, "float"))
-                self.AtSite = np.array(AtSite)
-            elif kw == "supercellSize":
-                self.supercellSize = self.str2num(item[1], "int")
-            elif kw=="supercellVacancy":
-                self.supercellVacList=[]
-                for row in item[1:]:
-                    tmpList=[self.str2num(row[0:3],"int"),int(row[3]),row[4]]
-                    self.supercellVacList.append(tmpList)
-            elif kw=="supercellSubstitution":
-                self.supercellSubsList=[]
-                for row in item[1:]:
-                    tmpList=[self.str2num(row[0:3],"int"), int(row[3]),row[4], row[5:]]
-                    self.supercellSubsList.append(tmpList)
-            elif kw=="supercellInterstitial":
-                self.supercellInterstitialList=[]
-                for row in item[1:]:
-                    tmpList=[self.str2num(row[0:3],"int"),self.str2num(row[3:6],"float"),row[6],row[7:]]
-                    self.supercellInterstitialList.append(tmpList)
-
-
-
-    def GetAtOrb(self,Orb):
-        """
-
-        :param Orb: a list of strings of orbitals
-        :return: vector of 1 and 0 to represent orbitals
-        """
-        # n=1~7 or unknown
-        Orb0 = np.zeros(94, int)  # 1+4+9+16+16+16+16+16
-        for Orbi in Orb:
-            IndGrp = np.where(self.OrbGrp == Orbi)[0]
-            IndIdv = np.where(self.OrbIdv == Orbi)[0]
-            if len(IndGrp):
-                Orb0[IndGrp[0]] = 1
-            elif len(IndIdv):
-                Orb0[IndIdv[0]] = 1
-            else:
-                print("No orbital named" + Orbi + "!")
-        return Orb0
-
+# class readInput:
+#     #mixin class, module for reading config file
+#
+#     def readContents(self,fileName):
+#         """
+#
+#         :param fileName: configuration containing the info of the lattice and supercell
+#         :return: contents in file
+#         """
+#         f = [line.strip() for line in open(fileName, "r").readlines()]
+#         contents = []
+#         for oneline in f:
+#             lineContents = oneline.split()
+#             if len(lineContents) == 0:  # skip empty lines
+#                 continue
+#             if lineContents[0] in self.keywords:#the variable keywords is defined in class lattice
+#                 contents.append(lineContents)
+#             else:
+#                 if len(contents) == 0:
+#                     raise ValueError("file not starting with a keyword.")
+#                 contents[-1].append(lineContents)
+#
+#         return contents
+#
+#     @staticmethod
+#     def str2num(numStrList, dtype="float"):
+#         """
+#
+#         :param numStrList: number string to be converted
+#         :param dtype: converted data type
+#         :return:
+#         """
+#
+#         if dtype == "float":
+#             ret = np.array([float(elem) for elem in numStrList])
+#             return ret
+#         if dtype == "int":
+#             ret = np.array([int(elem) for elem in numStrList])
+#             return ret
+#         if dtype == "complex":
+#             ret = np.array([complex(elem) for elem in numStrList])
+#             return ret
+#
+#     def readInput(self,fileName):
+#         """
+#
+#         :param fileName:
+#         :return: configuration containing the info of the lattice and supercell
+#         """
+#         contents = self.readContents(fileName)
+#         for item in contents:
+#             kw = item[0]
+#             if kw == "Name":
+#                 self.Name = item[1]
+#             elif kw == "Dim":
+#                 self.Dim = int(item[1])
+#             elif kw == "Spin":
+#                 self.Spn = int(item[1])
+#             elif kw == "Nbr":
+#                 n = int(item[1])
+#                 self.Nbr = [n, n, 0 if self.Dim == 2 else n]
+#             elif kw == "LatType":
+#                 self.LatType = item[1]
+#             elif kw == "LatVec":
+#                 Lv = []
+#                 for vecStr in item[1:]:
+#                     Lv.append(self.str2num(vecStr, "float"))
+#                 self.Lv = np.array(Lv)
+#             elif kw == "AtTpNum":
+#                 self.NumAtType = int(item[1])
+#             elif kw == "Bases":
+#                 self.AtName = []
+#                 self.AtNum = []
+#                 self.AtOrb = []
+#                 for strList in item[1:]:
+#                     self.AtName.append(strList[0])
+#                     self.AtNum.append(int(strList[1]))
+#                     self.AtOrb.append(self.GetAtOrb(strList[2:]))
+#             elif kw == "AtomSite":
+#                 AtSite = []
+#                 for strVec in item[1:]:
+#                     AtSite.append(self.str2num(strVec, "float"))
+#                 self.AtSite = np.array(AtSite)
+#             elif kw == "supercellSize":
+#                 self.supercellSize = self.str2num(item[1], "int")
+#             elif kw=="supercellVacancy":
+#                 self.supercellVacList=[]
+#                 for row in item[1:]:
+#                     tmpList=[self.str2num(row[0:3],"int"),int(row[3]),row[4]]
+#                     self.supercellVacList.append(tmpList)
+#             elif kw=="supercellSubstitution":
+#                 self.supercellSubsList=[]
+#                 for row in item[1:]:
+#                     tmpList=[self.str2num(row[0:3],"int"), int(row[3]),row[4], row[5:]]
+#                     self.supercellSubsList.append(tmpList)
+#             elif kw=="supercellInterstitial":
+#                 self.supercellInterstitialList=[]
+#                 for row in item[1:]:
+#                     tmpList=[self.str2num(row[0:3],"int"),self.str2num(row[3:6],"float"),row[6],row[7:]]
+#                     self.supercellInterstitialList.append(tmpList)
+#
+#
+#
+#     def GetAtOrb(self,Orb):
+#         """
+#
+#         :param Orb: a list of strings of orbitals
+#         :return: vector of 1 and 0 to represent orbitals
+#         """
+#         # n=1~7 or unknown
+#         Orb0 = np.zeros(94, int)  # 1+4+9+16+16+16+16+16
+#         for Orbi in Orb:
+#             IndGrp = np.where(self.OrbGrp == Orbi)[0]
+#             IndIdv = np.where(self.OrbIdv == Orbi)[0]
+#             if len(IndGrp):
+#                 Orb0[IndGrp[0]] = 1
+#             elif len(IndIdv):
+#                 Orb0[IndIdv[0]] = 1
+#             else:
+#                 print("No orbital named" + Orbi + "!")
+#         return Orb0
+#
