@@ -152,7 +152,10 @@ class baseLattice:
                     raise ValueError("Please remove duplicated positions in supercellInterstitial.")
 
 
-
+        #check if supercellNbr is > 0
+        if "supercellNbr" in self.ParaIn["supercell"]:
+            if self.ParaIn["supercell"]["supercellNbr"]<=0:
+                raise ValueError("supercellNbr should be greater than 0.")
 
         return
 
@@ -168,6 +171,7 @@ class superLattice(baseLattice):
         construct parameters for superLattice from baseLattice
         :return:
         """
+
 
 
 

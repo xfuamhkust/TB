@@ -30,7 +30,7 @@ OrbIdv = np.array(["1s","2s","2px","2py","2pz",
 keywords=["Name", "Dim", "Spin", "Nbr",
           "LatType", "LatVec", "AtTpNum","Bases",
           "AtomSite", "supercellSize","supercellVacancy","supercellSubstitution",
-          "supercellInterstitial"]
+          "supercellInterstitial","supercellNbr"]
 def ReadInput(fileName):
     """
 
@@ -112,6 +112,8 @@ def ReadInput(fileName):
                 tmpList = [str2num(row[0:3], "int"), str2num(row[3:6], "float"), row[6], row[7:]]
                 supercellInterstitialList.append(tmpList)
             ParaIn["supercell"]["supercellInterstitial"]=supercellInterstitialList
+        elif kw=="supercellNbr":
+            ParaIn["supercell"]["supercellNbr"]=int(item[1][0])
     inConfigFolder = str(pathlib.Path(fileName).parent)
     if len(ParaIn["supercell"])>0:
         ParaIn["supercell"]["baseLatticeType"]=LatType
