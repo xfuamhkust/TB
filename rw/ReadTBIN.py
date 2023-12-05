@@ -82,7 +82,7 @@ def ReadInput(fileName):
                 AtOrb.append(GetAtOrb(strList[2:]))
             ParaIn["AtomName"]=AtName
             ParaIn["AtomNumber"]=AtNum
-            ParaIn["AtomOrbital"]=AtOrb
+            ParaIn["AtomOrbital"]=np.array(AtOrb)
         elif kw == "AtomSite":
             AtSite = []
             for strVec in item[1:]:
@@ -91,6 +91,8 @@ def ReadInput(fileName):
             ParaIn["AtomSite"]=AtSite
         elif kw == "supercellSize":
             supercellSize = str2num(item[1], "int")
+            if len(supercellSize)!=3:
+                raise ValueError("Please give supercell size in 3 directions.")
             ParaIn["supercell"]["supercellSize"]=supercellSize
         elif kw == "supercellVacancy":
             supercellVacList = []
@@ -123,6 +125,7 @@ def ReadInput(fileName):
             AtTypeInd.append(iAt)
     AtTypeInd = np.array(AtTypeInd, "int")
     ParaIn["AtomTypeIndex"]=AtTypeInd
+    ParaIn["OrbIdv"]=OrbIdv
 
 
     return ParaIn
