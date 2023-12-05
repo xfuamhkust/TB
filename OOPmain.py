@@ -8,7 +8,7 @@ import sympy as smp
 
 plt.close("all")
 # lattice class
-from lattice.baseLattice import lattice
+from lattice.baseLattice import baseLattice
 
 # Main
 # from cd.SymGroup import GetSpaceGroupPrimitive
@@ -64,7 +64,7 @@ from ck.CheckEigValSym import CheckEnergySymmetry as CheckE
 # the program will compute primitive from conventional, or conventional from primitive.
 #2. When the
 
-material = 'data/ABO3/super_TBIN_ABO3.txt'
+material = 'data/ABO3/supercell_TBIN_ABO3.txt'
 # material = 'data/Graphene/primitive_TBIN_Graphene.txt'
 # material = 'data/h-BN/primitive_TBIN_h-BN.txt'
 # material = 'data/NaCl/primitive_TBIN_NaCl.txt'
@@ -90,7 +90,7 @@ if not os.path.isfile(inConfigName):
 # inConfigFolder=pathlib.Path(inConfigName).parent
 # print(inConfigFolder)
 #read info
-baseCrystal=lattice()
+baseCrystal=baseLattice()
 baseCrystal.ParaIn=ReadInput(inConfigName)
 baseCrystal.checkSupercellInfoSanity()
 # Name=ParaIn["Name"]

@@ -2,9 +2,10 @@
 import numpy as np
 
 
-class lattice:
+class baseLattice:
     #base class for a lattice
     def __init__(self):
+        #parameters in base lattice
         self.ParaIn={}
         self.ParaSym={}
         self.ParaNbr={}
@@ -16,11 +17,17 @@ class lattice:
         """
 
         :param atm: atom name
-        :return: number of atoms
+        :return: number of atoms in base cell
         """
         ind= self.ParaIn["AtomName"].index(atm)
         return self.ParaIn["AtomNumber"][ind]
     def checkSupercellInfoSanity(self):
+        """
+        Check if the information given in the supercellXXX parts is valid
+        :return:
+        """
+
+
         if len(self.ParaIn["supercell"])==0:
             return
 
@@ -84,6 +91,9 @@ class lattice:
                 atmNew=atmNewAndOrbs[0]
 
                 orbsNew=atmNewAndOrbs[1:]
+                #if orbitals are not provided
+                if len(orbsNew)==0:
+                    raise ValueError("Please give orbitals of the substitution from "+atmOld+" to "+atmNew+".")
                 rowSet.add(tuple([n0,n1,n2,j,atmOld]))
                 if len(orbsNew)==0:
                     raise ValueError("Please give the orbitals of the new atom.")
@@ -110,6 +120,8 @@ class lattice:
             eps=1e-6
             for row in self.ParaIn["supercell"]["supercellInterstitial"]:
                 n0n1n2,s0s1s2,atm,orbs=row
+                if len(orbs)==0:
+                    raise ValueError("Please give orbitals for interstitial atom "+atm+".")
                 n0,n1,n2=n0n1n2
                 s0,s1,s2=s0s1s2
                 rowList.append([n0,n1,n2,s0,s1,s2])
@@ -143,3 +155,20 @@ class lattice:
 
 
         return
+
+
+
+class superLattice(baseLattice):
+    # class for a superlattice
+    def __init__(self):
+        super().__init__()
+
+    def constructSuperLattice(self):
+        """
+        construct parameters for superLattice from baseLattice
+        :return:
+        """
+
+
+
+
