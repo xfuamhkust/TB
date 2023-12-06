@@ -59,6 +59,7 @@ def ReadInput(fileName):
             LatType = item[1]
             ParaIn["Lattice type"]=LatType
         elif kw == "LatVec":
+            #each row of Lv is a basis vector
             Lv = []
             for vecStr in item[1:]:
                 Lv.append(str2num(vecStr, "float"))
