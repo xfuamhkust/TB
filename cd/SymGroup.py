@@ -34,7 +34,7 @@ def GetSpaceGroupPrimitive(ParaIn):
     cVecOfC = convParamsAndInfo["Basis c"]
     brvType=convParamsAndInfo["Bravais type"]
 
-    atmIndsPrim=ParaIn["AtomTypeIndex"]
+    atmTypeIndsPrim=ParaIn["AtomTypeIndex"]
     atmPosPrim=ParaIn["AtomSite"]#coordinates under #
     atmIndsConv=[]#indices of atoms in conventional cell
     atmPosConvCartesian=[]#coordinates under Cartesian  basis
@@ -44,16 +44,16 @@ def GetSpaceGroupPrimitive(ParaIn):
     # print(bVecOfC)
     # print(cVecOfC)
     # print(brvType)
-    # print(atmIndsPrim)
+    # print(atmTypeIndsPrim)
     # print(atmPosPrim)
-    if len(atmIndsPrim)!=len(atmPosPrim):
+    if len(atmTypeIndsPrim)!=len(atmPosPrim):
         raise ValueError("Atom numbers != number of positions.")
 
     # originGiven=np.array([0,0,0],dtype=np.float64)
 
-    for j in range(0,len(atmIndsPrim)):
+    for j in range(0,len(atmTypeIndsPrim)):
         posTmp=atmPosPrim[j]
-        indTmp=atmIndsPrim[j]
+        indTmp=atmTypeIndsPrim[j]
         posTmpCartesian=posTmp[0]*aVecOfP+posTmp[1]*bVecOfP+posTmp[2]*cVecOfP
         pntsInConvTmp=truncatedPointsInConventionalCell(posTmpCartesian,aVecOfC,bVecOfC,cVecOfC,brvType)
         for onePnt in pntsInConvTmp:
@@ -412,22 +412,22 @@ def paraInPrim2Conv(ParaIn):
     cVecOfC = convParamsAndInfo["Basis c"]
     brvType = convParamsAndInfo["Bravais type"]
 
-    atmIndsPrim = ParaIn["AtomTypeIndex"]
-    atmPosPrim = ParaIn["AtomSite"]  # coordinates under #
+    atmTypeIndsPrim = ParaIn["AtomTypeIndex"]
+    atmPosPrim = ParaIn["AtomSite"]  # coordinates under primitive basis#
     atmIndsConv = []  # coordinates under Cartesian basis
-    atmPosConvCartesian = []  # coordinates under Cartesian  basis
+    atmPosConvCartesian = []  # coordinates under Cartesian  basis in conventional cell
     # print(aVecOfC)
     # print(bVecOfC)
     # print(cVecOfC)
     # print(brvType)
-    # print(atmIndsPrim)
+    # print(atmTypeIndsPrim)
     # print(atmPosPrim)
-    if len(atmIndsPrim) != len(atmPosPrim):
+    if len(atmTypeIndsPrim) != len(atmPosPrim):
         raise ValueError("Atom numbers != number of positions.")
 
-    for j in range(0, len(atmIndsPrim)):
+    for j in range(0, len(atmTypeIndsPrim)):
         posTmp = atmPosPrim[j]
-        indTmp = atmIndsPrim[j]
+        indTmp = atmTypeIndsPrim[j]
         posTmpCartesian = posTmp[0] * aVecOfP + posTmp[1] * bVecOfP + posTmp[2] * cVecOfP
         pntsInConvTmp = truncatedPointsInConventionalCell(posTmpCartesian, aVecOfC, bVecOfC, cVecOfC, brvType)
         for onePnt in pntsInConvTmp:

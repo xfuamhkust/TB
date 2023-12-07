@@ -88,7 +88,9 @@ class baseLattice:
                 n0n1n2, j, atmOld, atmNewAndOrbs = row
                 n0, n1, n2 = n0n1n2
                 atmNew = atmNewAndOrbs[0]
-
+                # TODO: for now we make the restriction that the substuted atom is different from the new atom
+                if atmNew==atmOld:
+                    raise ValueError("Substitution must be a different atom from "+atmOld+".")
                 orbsNew = atmNewAndOrbs[1:]
                 # if orbitals are not provided
                 if len(orbsNew) == 0:
