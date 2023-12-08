@@ -8,8 +8,8 @@ import sympy as smp
 
 plt.close("all")
 # lattice class
-from lattice.baseLattice import baseLattice
-
+# from lattice.baseLattice import baseLattice
+from lattice.superLattice import superLattice
 # Main
 # from cd.SymGroup import GetSpaceGroupPrimitive
 from cd.SymGroup import paraInPrim2Conv,conv2SGN,getParaSym
@@ -90,43 +90,44 @@ if not os.path.isfile(inConfigName):
 # inConfigFolder=pathlib.Path(inConfigName).parent
 # print(inConfigFolder)
 #read info
-baseCrystal=baseLattice()
-baseCrystal.ParaIn=ReadInput(inConfigName)
-baseCrystal.checkSupercellInfoSanity()
+superCrystal=superLattice()
+superCrystal.ParaIn=ReadInput(inConfigName)
+superCrystal.checkSupercellInfoSanity()
+superCrystal.constructSuperLattice()
 # Name=ParaIn["Name"]
 
 
 '''################### Determine space group of crystal ####################'''
 # ParaSym = GetSpaceGroupPrimitive(ParaIn)
-atmUnderConvVector,atmIndsConv=paraInPrim2Conv(baseCrystal.ParaIn)
-SGN, originBilbao=conv2SGN(baseCrystal.ParaIn,atmUnderConvVector,atmIndsConv)
-baseCrystal.ParaSym=getParaSym(baseCrystal.ParaIn,SGN, originBilbao)
-baseCrystal.ParaIn["origin Bilbao"]=baseCrystal.ParaSym["origin Bilbao"]
+atmUnderConvVector,atmIndsConv=paraInPrim2Conv(superCrystal.ParaIn)
+SGN, originBilbao=conv2SGN(superCrystal.ParaIn,atmUnderConvVector,atmIndsConv)
+superCrystal.ParaSym=getParaSym(superCrystal.ParaIn,SGN, originBilbao)
+superCrystal.ParaIn["origin Bilbao"]=superCrystal.ParaSym["origin Bilbao"]
 
 
 '''##################### Complete Electronic orbitals ######################'''
-CheckOrbital(baseCrystal.ParaIn,baseCrystal.ParaSym)
+# CheckOrbital(baseCrystal.ParaIn,baseCrystal.ParaSym)
 
 
 '''################### Relate hopping terms by symmetry ####################'''
-baseCrystal.ParaNbr    = FindNeighbor(baseCrystal.ParaIn)
+# baseCrystal.ParaNbr    = FindNeighbor(baseCrystal.ParaIn)
 # PlotAtoms(baseCrystal.ParaIn,baseCrystal.ParaNbr,baseCrystal.ParaIn["Name"])
-tFindingRelationStart=datetime.now()
-baseCrystal.ParaSymAt  = FindAtomSymmetry(baseCrystal.ParaIn,baseCrystal.ParaSym,baseCrystal.ParaNbr)
-baseCrystal.ParaRel    = FindRelation(baseCrystal.ParaIn,baseCrystal.ParaSym,baseCrystal.ParaNbr,baseCrystal.ParaSymAt)
+# tFindingRelationStart=datetime.now()
+# baseCrystal.ParaSymAt  = FindAtomSymmetry(baseCrystal.ParaIn,baseCrystal.ParaSym,baseCrystal.ParaNbr)
+# baseCrystal.ParaRel    = FindRelation(baseCrystal.ParaIn,baseCrystal.ParaSym,baseCrystal.ParaNbr,baseCrystal.ParaSymAt)
 # PlotHoppingTerm(baseCrystal.ParaIn,baseCrystal.ParaNbr,baseCrystal.ParaRel,baseCrystal.ParaIn["Name"],[5,6])
-tFindingRelationEnd=datetime.now()
-print("Finding symmetry relations: ",tFindingRelationEnd-tFindingRelationStart)
-WriteRelation(baseCrystal.ParaIn,baseCrystal.ParaRel)
+# tFindingRelationEnd=datetime.now()
+# print("Finding symmetry relations: ",tFindingRelationEnd-tFindingRelationStart)
+# WriteRelation(baseCrystal.ParaIn,baseCrystal.ParaRel)
 
 
 '''################### Calculate real space Hamiltonian ####################'''
-# From hopping relations to Hamiltonian in real space
-HopValIn   = ReadHopping(baseCrystal.ParaIn["Folder"]+"/HopValIN_"+baseCrystal.ParaIn["Name"]+".txt")
-# ParaRel    = ReadRelation(baseCrystal.ParaIn["Folder"]+ "/HopRel.txt")
-baseCrystal.HopValClas = GetHoppingValue(HopValIn, baseCrystal.ParaRel)
-ParaHmtR   = GetHamiltonianReal(baseCrystal.ParaRel,baseCrystal.HopValClas)
-WriteHamiltonianReal(baseCrystal.ParaIn, ParaHmtR)
+# # From hopping relations to Hamiltonian in real space
+# HopValIn   = ReadHopping(baseCrystal.ParaIn["Folder"]+"/HopValIN_"+baseCrystal.ParaIn["Name"]+".txt")
+# # ParaRel    = ReadRelation(baseCrystal.ParaIn["Folder"]+ "/HopRel.txt")
+# baseCrystal.HopValClas = GetHoppingValue(HopValIn, baseCrystal.ParaRel)
+# ParaHmtR   = GetHamiltonianReal(baseCrystal.ParaRel,baseCrystal.HopValClas)
+# WriteHamiltonianReal(baseCrystal.ParaIn, ParaHmtR)
 
 
 # '''###### Compute analytic forms of real space and k-space Hamiltonian #####'''
@@ -144,21 +145,21 @@ WriteHamiltonianReal(baseCrystal.ParaIn, ParaHmtR)
 
 '''######################## Calculate Energy Bands #########################'''
 # From Hamiltonian in real space to Hamiltonian in k space
-ParaHmtR   = ReadHamiltonianReal(baseCrystal.ParaIn)
-ParaKptIn  = ReadKPoint(baseCrystal.ParaIn["Folder"]+"/KptIN_" + baseCrystal.ParaIn["Name"]+ ".txt")
-ParaKpt    = GetKPoint(ParaKptIn)
-ParaHmtK   = GetHamiltonianK(ParaHmtR,ParaKpt)
-# Solve the k-space Hamiltonian to get energy bands
-tEigStart=datetime.now()
-ParaEig    = GetEigenSolution(ParaHmtK)
-ParaEigPlt = PlotEnergyBand(ParaKpt,ParaEig,baseCrystal.ParaIn["Folder"])
-tEigEnd=datetime.now()
-print(baseCrystal.ParaIn["Name"]+ " enerygy band: ",tEigEnd-tEigStart)
+# ParaHmtR   = ReadHamiltonianReal(baseCrystal.ParaIn)
+# ParaKptIn  = ReadKPoint(baseCrystal.ParaIn["Folder"]+"/KptIN_" + baseCrystal.ParaIn["Name"]+ ".txt")
+# ParaKpt    = GetKPoint(ParaKptIn)
+# ParaHmtK   = GetHamiltonianK(ParaHmtR,ParaKpt)
+# # Solve the k-space Hamiltonian to get energy bands
+# tEigStart=datetime.now()
+# ParaEig    = GetEigenSolution(ParaHmtK)
+# ParaEigPlt = PlotEnergyBand(ParaKpt,ParaEig,baseCrystal.ParaIn["Folder"])
+# tEigEnd=datetime.now()
+# print(baseCrystal.ParaIn["Name"]+ " enerygy band: ",tEigEnd-tEigStart)
 
 
 '''######### Check symmetry of Energy Bands and k-space Hamiltonian ########'''
-CheckE(baseCrystal.ParaIn,baseCrystal.ParaSym,baseCrystal.ParaSymAt,ParaHmtR,0)
-CheckH(baseCrystal.ParaIn,baseCrystal.ParaSym,baseCrystal.ParaSymAt,ParaHmtR)
+# CheckE(baseCrystal.ParaIn,baseCrystal.ParaSym,baseCrystal.ParaSymAt,ParaHmtR,0)
+# CheckH(baseCrystal.ParaIn,baseCrystal.ParaSym,baseCrystal.ParaSymAt,ParaHmtR)
 
 
 # '''####################### Calculate Berry Curvature #######################'''
@@ -192,16 +193,16 @@ CheckH(baseCrystal.ParaIn,baseCrystal.ParaSym,baseCrystal.ParaSymAt,ParaHmtR)
 
 '''######################## Calculate info of strip ########################'''
 # Read real space Hamiltonian and input parameters (method,nE,nk)
-ParaHmtR   = ReadHamiltonianReal(baseCrystal.ParaIn)
-ParaQcIn   = ReadQcPara(baseCrystal.ParaIn["Folder"]+ "/QcIN_" + baseCrystal.ParaIn["Name"] + ".txt")
-# Info of strip
-ParaStrip  = GetStrip(baseCrystal.ParaIn,ParaHmtR,ParaQcIn)
-# Plot strip
-PlotAtomStrip(ParaStrip,baseCrystal.ParaIn["Name"])
-# Calculate energy band
-ParaEigStrip = GetEigStrip(ParaStrip)
-PlotEnergyBand1D(ParaEigStrip,baseCrystal.ParaIn["Folder"])
-# Calculate quantum conductance
-ParaQc     = GetQc(ParaQcIn,ParaStrip)
-PlotQuanCond(ParaQc,baseCrystal.ParaIn["Folder"])
+# ParaHmtR   = ReadHamiltonianReal(baseCrystal.ParaIn)
+# ParaQcIn   = ReadQcPara(baseCrystal.ParaIn["Folder"]+ "/QcIN_" + baseCrystal.ParaIn["Name"] + ".txt")
+# # Info of strip
+# ParaStrip  = GetStrip(baseCrystal.ParaIn,ParaHmtR,ParaQcIn)
+# # Plot strip
+# PlotAtomStrip(ParaStrip,baseCrystal.ParaIn["Name"])
+# # Calculate energy band
+# ParaEigStrip = GetEigStrip(ParaStrip)
+# PlotEnergyBand1D(ParaEigStrip,baseCrystal.ParaIn["Folder"])
+# # Calculate quantum conductance
+# ParaQc     = GetQc(ParaQcIn,ParaStrip)
+# PlotQuanCond(ParaQc,baseCrystal.ParaIn["Folder"])
 '''This part is only tested with graphene & BN!'''

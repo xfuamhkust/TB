@@ -77,13 +77,16 @@ def ReadInput(fileName):
             AtName = []
             AtNum = []
             AtOrb = []
+            AtOrbStr=[]
             for strList in item[1:]:
                 AtName.append(strList[0])
                 AtNum.append(int(strList[1]))
-                AtOrb.append(GetAtOrb(strList[2:]))
+                AtOrb.append(GetAtOrb(strList[2:],OrbGrp,OrbIdv))
+                AtOrbStr.append(strList[2:])
             ParaIn["AtomName"]=AtName
             ParaIn["AtomNumber"]=AtNum
             ParaIn["AtomOrbital"]=np.array(AtOrb)
+            ParaIn["AtomOrbitalStr"]=AtOrbStr
         elif kw == "AtomSite":
             AtSite = []
             for strVec in item[1:]:
@@ -172,12 +175,12 @@ def readContents(fileName):
     return contents
 
 
-def GetAtOrb(Orb):
+def GetAtOrb(Orb,OrbGrpVal,OrbIdvVal):
     # n=1~7 or unknown
     Orb0 = np.zeros(94,int) #1+4+9+16+16+16+16+16
     for Orbi in Orb:
-        IndGrp  = np.where(OrbGrp ==Orbi)[0]
-        IndIdv  = np.where(OrbIdv ==Orbi)[0]
+        IndGrp  = np.where(OrbGrpVal ==Orbi)[0]
+        IndIdv  = np.where(OrbIdvVal ==Orbi)[0]
         if len(IndGrp):
             Orb0[IndGrp[0]] = 1
         elif len(IndIdv):
